@@ -7,6 +7,7 @@ import RegisterPage from './pages/RegisterPage';
 import ForumPage from './pages/ForumPage';
 import ThreadPage from './pages/ThreadPage';
 import CreateThreadPage from './pages/CreateThreadPage';
+import CreateForumPage from './pages/CreateForumPage';
 import UserProfilePage from './pages/UserProfilePage';
 import './App.css';
 
@@ -40,6 +41,14 @@ function AppContent() {
         <Route path="/forums/:forumId" element={<ForumPage />} />
         <Route path="/forums/:forumId/threads/:threadId" element={<ThreadPage />} />
         <Route path="/user/:userId" element={<UserProfilePage />} />
+        <Route
+          path="/create-forum"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading}>
+              <CreateForumPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/forums/:forumId/create-thread"
           element={

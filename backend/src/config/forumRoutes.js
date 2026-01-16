@@ -1,10 +1,70 @@
 import express from 'express';
-import { getAllForums, getForumById } from '../modules/forums.js';
+import { getAllForums, getForumById, createForum } from '../modules/forums.js';
 import { getAllThreads, getThreadById, createThread, updateThread, deleteThread, incrementThreadViews } from '../modules/threads.js';
 import { getThreadComments, createComment, updateComment, deleteComment } from '../modules/comments.js';
 import { authenticate } from '../middleware/auth.js';
+import pool from '../db/connection.js';
 
 const router = express.Router();
+
+// Get all games
+router.get('/games/all', async (req, res, next) => {
+  try {
+    const result = await pool.query('SELECT id, name, description, icon_url FROM games ORDER BY name');
+    res.status(200).json({
+      data: result.rows,
+      message: 'Games retrieved'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Create new forum
+router.post('/create', authenticate, async (req, res, next) => {
+  try {
+    const { gameId, name, description } = req.body;
+
+    if (!gameId || !name || !description) {
+      return res.status(400).json({
+        error: 'Game ID, name, and description are required',
+        code: 'MISSING_FIELDS'
+      });
+    }
+
+    if (name.length < 3 || name.length > 100) {
+      return res.status(400).json({
+        error: 'Forum name must be between 3 and 100 characters',
+        code: 'INVALID_NAME'
+      });
+    }
+
+    if (description.length < 10 || description.length > 500) {
+      return res.status(400).json({
+        error: 'Forum description must be between 10 and 500 characters',
+        code: 'INVALID_DESCRIPTION'
+      });
+    }
+
+    // Verify game exists
+    const gameCheck = await pool.query('SELECT id FROM games WHERE id = $1', [gameId]);
+    if (gameCheck.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Game not found',
+        code: 'GAME_NOT_FOUND'
+      });
+    }
+
+    const forum = await createForum(gameId, name, description);
+
+    res.status(201).json({
+      data: forum,
+      message: 'Forum created successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Get all forums or forums by game
 router.get('/', async (req, res, next) => {

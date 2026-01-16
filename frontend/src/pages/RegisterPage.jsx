@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../services/authContext';
 import '../styles/auth.css';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -10,8 +10,15 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const { register, error: authError } = useAuth();
   const navigate = useNavigate();
+
+  // Watch for auth context errors
+  useEffect(() => {
+    if (authError) {
+      setError(authError);
+    }
+  }, [authError]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,7 +35,12 @@ export default function RegisterPage() {
       await register(username, email, password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed');
+      // Error is already handled by authContext
+      const errorMsg = err.response?.data?.error || 
+                       err.response?.data?.message || 
+                       err.message || 
+                       'Registration failed';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }

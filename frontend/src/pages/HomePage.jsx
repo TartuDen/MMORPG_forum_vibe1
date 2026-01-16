@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { forumsAPI } from '../services/api';
+import { useAuth } from '../services/authContext';
 import '../styles/home.css';
 
 export default function HomePage() {
@@ -8,6 +9,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     const fetchForums = async () => {
@@ -31,12 +33,26 @@ export default function HomePage() {
   return (
     <div className="container">
       <div className="home-header">
-        <h2>Game Forums</h2>
-        <p>Choose a forum to discuss your favorite MMO/RPG games</p>
+        <div className="header-content">
+          <h2>Game Forums</h2>
+          <p>Choose a forum to discuss your favorite MMO/RPG games</p>
+        </div>
+        {isAuthenticated && (
+          <button className="create-forum-btn" onClick={() => navigate('/create-forum')}>
+            + Create Forum
+          </button>
+        )}
       </div>
 
       {forums.length === 0 ? (
-        <p className="no-content">No forums available yet</p>
+        <div className="no-content">
+          <p>No forums available yet</p>
+          {isAuthenticated && (
+            <button className="create-btn-alt" onClick={() => navigate('/create-forum')}>
+              Be the first to create a forum!
+            </button>
+          )}
+        </div>
       ) : (
         <div className="forums-grid">
           {forums.map((forum) => (

@@ -1,7 +1,14 @@
 .home-header {
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 2rem;
   padding: 1rem 0;
+}
+
+.header-content {
+  text-align: left;
+  flex: 1;
 }
 
 .home-header h2 {
@@ -12,6 +19,39 @@
 .home-header p {
   color: #666;
   margin: 0;
+}
+
+.create-forum-btn {
+  background-color: var(--color-secondary);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+  white-space: nowrap;
+  margin-left: 1rem;
+}
+
+.create-forum-btn:hover {
+  background-color: #d41d7a;
+}
+
+.create-btn-alt {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.create-btn-alt:hover {
+  background-color: #5558e3;
 }
 
 .forums-grid {
