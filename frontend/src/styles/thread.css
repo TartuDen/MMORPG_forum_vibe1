@@ -1,0 +1,108 @@
+.thread-detail {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.thread-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.thread-header h2 {
+  margin: 0;
+  color: var(--color-dark);
+  flex: 1;
+}
+
+.delete-btn {
+  padding: 0.5rem 1rem;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.2s ease;
+}
+
+.delete-btn:hover {
+  background-color: #dc2626;
+}
+
+.thread-meta {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.thread-content {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--color-dark);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.comments-section {
+  margin-top: 2rem;
+}
+
+.comments-section h3 {
+  color: var(--color-dark);
+  margin-bottom: 1.5rem;
+}
+
+.comment-form {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.comment-form textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  margin-bottom: 1rem;
+}
+
+.comment-form textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.login-prompt {
+  background: #f0f9ff;
+  border: 1px solid #bfdbfe;
+  padding: 1rem;
+  border-radius: 4px;
+  color: #1e40af;
+  margin-bottom: 2rem;
+}
+
+.login-prompt a {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
