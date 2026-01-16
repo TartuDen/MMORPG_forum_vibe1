@@ -157,3 +157,14 @@
   background-color: var(--color-primary);
   color: white;
 }
+.username-link {
+  cursor: pointer;
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.username-link:hover {
+  color: var(--color-secondary);
+  text-decoration: underline;
+}

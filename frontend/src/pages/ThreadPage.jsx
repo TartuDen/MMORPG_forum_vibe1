@@ -99,7 +99,10 @@ export default function ThreadPage() {
         </div>
 
         <div className="thread-meta">
-          <span>By <strong>{thread.author_username}</strong></span>
+          <span>By <strong 
+            className="username-link"
+            onClick={() => navigate(`/user/${thread.user_id}`)}
+          >{thread.author_username}</strong></span>
           <span>Posted {new Date(thread.created_at).toLocaleDateString()}</span>
           <span>👁 {thread.view_count} views</span>
         </div>

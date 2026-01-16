@@ -42,7 +42,13 @@ export default function Navbar() {
         <div className="navbar-menu">
           {isAuthenticated ? (
             <>
-              <span className="navbar-user">Welcome, {user?.username}!</span>
+              <span 
+                className="navbar-user" 
+                onClick={() => navigate(`/user/${user?.id}`)}
+                style={{ cursor: 'pointer' }}
+              >
+                Welcome, {user?.username}!
+              </span>
               <button onClick={handleLogout} className="navbar-btn logout-btn">
                 Logout
               </button>

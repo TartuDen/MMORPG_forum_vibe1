@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { commentsAPI } from '../services/api';
 import '../styles/comment.css';
 
 export default function Comment({ comment, forumId, threadId, isOwner, onUpdate }) {
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [error, setError] = useState('');
@@ -50,7 +52,10 @@ export default function Comment({ comment, forumId, threadId, isOwner, onUpdate 
     <div className="comment">
       <div className="comment-header">
         <div className="comment-author">
-          <strong>{comment.author_username}</strong>
+          <strong 
+            className="username-link"
+            onClick={() => navigate(`/user/${comment.user_id}`)}
+          >{comment.author_username}</strong>
           <span className="comment-date">
             {new Date(comment.created_at).toLocaleString()}
           </span>
