@@ -84,7 +84,17 @@ export default function ForumPage() {
                     {thread.is_pinned && <span className="pinned-badge">📌</span>}
                     {thread.title}
                   </td>
-                  <td className="thread-author">{thread.author_username}</td>
+                  <td className="thread-author">
+                    <span 
+                      className="username-link"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/user/${thread.author_id}`);
+                      }}
+                    >
+                      {thread.author_username}
+                    </span>
+                  </td>
                   <td className="thread-replies">{thread.comment_count}</td>
                   <td className="thread-views">{thread.view_count}</td>
                   <td className="thread-date">

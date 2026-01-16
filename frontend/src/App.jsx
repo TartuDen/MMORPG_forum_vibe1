@@ -7,6 +7,7 @@ import RegisterPage from './pages/RegisterPage';
 import ForumPage from './pages/ForumPage';
 import ThreadPage from './pages/ThreadPage';
 import CreateThreadPage from './pages/CreateThreadPage';
+import UserProfilePage from './pages/UserProfilePage';
 import './App.css';
 
 function ProtectedRoute({ children, isAuthenticated, loading }) {
@@ -38,6 +39,7 @@ function AppContent() {
         />
         <Route path="/forums/:forumId" element={<ForumPage />} />
         <Route path="/forums/:forumId/threads/:threadId" element={<ThreadPage />} />
+        <Route path="/user/:userId" element={<UserProfilePage />} />
         <Route
           path="/forums/:forumId/create-thread"
           element={
