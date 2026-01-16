@@ -7,7 +7,7 @@ A modular, full-stack web application for gaming communities to discuss MMO and 
 - **User Authentication**: Email/password registration and login with JWT tokens
 - **Discussion Forums**: Create threads, reply with nested comments
 - **Game-Specific Sections**: Organize conversations by game
-- **Real-time Notifications**: WebSocket-based live notifications
+- **Real-time Notifications**: WebSocket-based live notifications (Phase 2)
 - **User Profiles**: View user info, thread count, account creation date
 - **Manual Moderation**: Admin-only content moderation and user promotion
 - **Search**: Simple text search on threads and replies
@@ -25,36 +25,43 @@ A modular, full-stack web application for gaming communities to discuss MMO and 
 ## 📋 Project Structure
 
 ```
-mmo-rpg-forum/
+mmorpg-forum/
 ├── backend/                    # Node.js/Express backend
 │   ├── src/
-│   │   ├── config/            # Configuration modules
-│   │   ├── modules/           # Feature modules
-│   │   ├── middleware/        # Express middleware
-│   │   ├── utils/             # Shared utilities
-│   │   ├── db/                # Database setup
+│   │   ├── config/            # Routes and configuration
+│   │   ├── modules/           # Feature modules (users, forums, threads, comments)
+│   │   ├── middleware/        # Express middleware (auth, errors)
+│   │   ├── utils/             # Shared utilities (JWT, password, validators)
+│   │   ├── db/                # Database setup and initialization
 │   │   ├── app.js             # Express app
 │   │   └── server.js          # Server entry point
+│   ├── .env.example           # Environment variables template
 │   └── package.json
 ├── frontend/                   # React frontend
 │   ├── src/
-│   │   ├── components/        # React components
-│   │   ├── pages/             # Page components
-│   │   ├── services/          # API & WebSocket services
-│   │   ├── styles/            # Theme & styling
-│   │   └── App.jsx
+│   │   ├── components/        # React components (Navbar)
+│   │   ├── pages/             # Page components (Home, Login, Register)
+│   │   ├── services/          # API & Auth services
+│   │   ├── styles/            # CSS stylesheets
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── index.html
+│   ├── vite.config.js
+│   ├── .env.example
 │   └── package.json
 ├── docs/                       # Documentation
 │   ├── SYSTEM_ARCHITECTURE.md
 │   ├── API_DOCUMENTATION.md
 │   ├── DATABASE_SCHEMA.md
 │   └── DEPLOYMENT_GUIDE.md
-└── TECHNICAL_DESCRIPTION.md    # Project requirements
+├── TECHNICAL_DESCRIPTION.md    # Project requirements
+└── README.md
 ```
 
 ## 🛠️ Development Setup
 
 ### Prerequisites
+
 - Node.js 18+ LTS
 - PostgreSQL 14+
 - npm or yarn
@@ -63,47 +70,114 @@ mmo-rpg-forum/
 
 ```bash
 cd backend
+
+# Install dependencies
 npm install
+
+# Create environment file
 cp .env.example .env
-# Configure database connection in .env
+
+# Edit .env with your database configuration:
+# DB_HOST=localhost
+# DB_PORT=5432
+# DB_NAME=mmorpg_forum
+# DB_USER=postgres
+# DB_PASSWORD=your_password
+# PORT=5000
+# NODE_ENV=development
+# JWT_SECRET=your_jwt_secret_here
+
+# Start development server
 npm run dev
 ```
+
+Backend API will be available at `http://localhost:5000`
 
 ### Frontend Setup
 
 ```bash
 cd frontend
+
+# Install dependencies
 npm install
+
+# Create environment file
 cp .env.example .env
+
+# Edit .env with API URL:
+# VITE_API_BASE_URL=http://localhost:5000/api
+
+# Start development server
 npm run dev
 ```
 
-Visit `http://localhost:5173` (Vite default port)
+Frontend will be available at `http://localhost:5173`
+
+### Database Setup
+
+1. Start PostgreSQL server
+2. Create database and user:
+   ```sql
+   CREATE DATABASE mmorpg_forum;
+   CREATE USER forum_user WITH PASSWORD 'secure_password';
+   GRANT ALL PRIVILEGES ON DATABASE mmorpg_forum TO forum_user;
+   ```
+3. The backend will automatically initialize the schema on first run
 
 ## 📚 Documentation
 
 - [TECHNICAL_DESCRIPTION.md](./TECHNICAL_DESCRIPTION.md) - Project requirements and specifications
 - [docs/SYSTEM_ARCHITECTURE.md](./docs/SYSTEM_ARCHITECTURE.md) - Database schema, API specs, architecture
-- [docs/API_DOCUMENTATION.md](./docs/API_DOCUMENTATION.md) - Detailed API endpoints
-- [docs/DATABASE_SCHEMA.md](./docs/DATABASE_SCHEMA.md) - PostgreSQL schema
+- [docs/API_DOCUMENTATION.md](./docs/API_DOCUMENTATION.md) - Detailed API endpoints with examples
+- [docs/DATABASE_SCHEMA.md](./docs/DATABASE_SCHEMA.md) - PostgreSQL schema definitions
 - [docs/DEPLOYMENT_GUIDE.md](./docs/DEPLOYMENT_GUIDE.md) - Production deployment steps
 
-## 🔄 Development Workflow
+## 🔐 Authentication
 
-1. Create feature branch from `develop`
-2. Implement feature with modular structure
-3. Test locally
-4. Submit pull request to `develop`
-5. Merge to `main` for production deployment
+The application uses JWT-based authentication:
+
+1. User registers or logs in with email/password
+2. Server validates credentials and generates JWT token
+3. Frontend stores token in localStorage
+4. Token is automatically included in all API requests
+5. On token expiry, refresh token is used to get new token
+6. Session persists across browser refreshes
+
+## 📡 API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login user
+- `POST /api/auth/refresh` - Refresh JWT token
+- `GET /api/auth/me` - Get current user profile (requires auth)
+- `PUT /api/auth/me` - Update user profile (requires auth)
+
+### Users
+- `GET /api/users` - List all users (paginated)
+- `GET /api/users/:id` - Get user profile
+
+### Forums
+- `GET /api/forums` - Get all forums
+- `GET /api/forums/:forumId` - Get forum with threads
+
+### Threads
+- `GET /api/forums/:forumId/threads/:threadId` - Get thread with comments
+- `POST /api/forums/:forumId/threads` - Create thread (auth required)
+- `PUT /api/forums/:forumId/threads/:threadId` - Update thread (owner only)
+- `DELETE /api/forums/:forumId/threads/:threadId` - Delete thread (owner only)
+
+### Comments
+- `POST /api/forums/:forumId/threads/:threadId/comments` - Create comment (auth required)
+- `PUT /api/forums/:forumId/threads/:threadId/comments/:commentId` - Update comment (owner only)
+- `DELETE /api/forums/:forumId/threads/:threadId/comments/:commentId` - Delete comment (owner only)
 
 ## 📦 Available Scripts
 
 ### Backend
 ```bash
-npm run dev      # Run with nodemon (auto-reload)
+npm run dev      # Start with nodemon (auto-reload)
 npm start        # Production start
 npm test         # Run tests
-npm run lint     # Lint code
 ```
 
 ### Frontend
@@ -111,54 +185,93 @@ npm run lint     # Lint code
 npm run dev      # Development server with HMR
 npm run build    # Production build
 npm run preview  # Preview production build
-npm run lint     # Lint code
 ```
 
-## 🚢 Deployment
+## 🗄️ Database
 
-### Demo Deployment
-- **Backend**: Railway.app (free tier with $5/month credits)
-- **Frontend**: Vercel (free tier)
-- **Database**: PostgreSQL on Railway
+The application uses PostgreSQL with the following tables:
 
-See [DEPLOYMENT_GUIDE.md](./docs/DEPLOYMENT_GUIDE.md) for detailed steps.
+- **users**: User accounts and authentication
+- **games**: MMO/RPG game definitions
+- **forums**: Discussion forums per game
+- **threads**: Discussion threads
+- **comments**: Replies to threads with soft delete
+- **moderation_log**: Audit trail for moderation actions
 
-## 🤝 Architecture Principles
+All tables are automatically created on first backend startup.
 
-- **Modularity**: Each feature in isolated, independent modules
-- **Configuration**: Settings in centralized config files (not hardcoded)
-- **Scalability**: Designed to support future phases without major refactoring
-- **Security**: Input validation, SQL injection prevention, XSS protection
+## 🔄 Development Workflow
 
-## 📅 Phase Roadmap
+1. Create feature branch from `main`
+2. Implement feature with modular structure
+3. Test locally with both backend and frontend
+4. Submit pull request to `main`
+5. Code review and merge
 
-- **Phase 1**: MVP (Forum, Auth, Moderation) ← **Current**
-- **Phase 2**: Enhanced Features (Messages, News, Game Sections, Uploads)
-- **Phase 3**: Mobile & PWA (React Native, Progressive Web App)
-- **Phase 4**: Scaling (Reputation system, Advanced search, Analytics)
+## 🚀 Deployment
 
-## ⚖️ License
+See [docs/DEPLOYMENT_GUIDE.md](./docs/DEPLOYMENT_GUIDE.md) for detailed deployment instructions including:
+
+- Linux server setup with Node.js and PostgreSQL
+- Docker deployment with Docker Compose
+- Nginx reverse proxy configuration
+- SSL certificates with Let's Encrypt
+- PM2 process management
+- Database backup strategy
+
+## 📝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 License
 
 MIT License - see LICENSE file for details
 
-## 🤖 Initial Setup Checklist
+## 👥 Team
 
-- [ ] Clone repository
-- [ ] Install backend dependencies (`cd backend && npm install`)
-- [ ] Install frontend dependencies (`cd frontend && npm install`)
-- [ ] Set up PostgreSQL database (see DEPLOYMENT_GUIDE.md)
-- [ ] Configure `.env` files in backend and frontend
-- [ ] Run database migrations
-- [ ] Start backend server (`npm run dev` in backend/)
-- [ ] Start frontend server (`npm run dev` in frontend/)
-- [ ] Verify both running at `http://localhost:3001` (backend) and `http://localhost:5173` (frontend)
+- **Author**: TartuDen
+- **Email**: your_email@example.com
+- **Status**: Phase 1 Development
 
-## 📞 Support
+## 🎯 Roadmap
 
-For questions or issues, please open an issue on GitHub.
+### Phase 1 (Current - MVP)
+- ✅ User authentication with JWT
+- ✅ Forum/thread/comment system
+- ✅ Backend API with full CRUD operations
+- ✅ Frontend pages (Login, Register, Home)
+- ⏳ Frontend forum/thread pages
+- ⏳ Testing & bug fixes
+
+### Phase 2
+- Real-time notifications (Socket.io)
+- User profiles with avatars
+- Advanced search functionality
+- Moderation dashboard
+- User reputation/karma system
+
+### Phase 3
+- PWA for mobile access
+- Rich text editor for posts
+- File upload support
+- Email notifications
+
+### Phase 4
+- Admin panel
+- Advanced analytics
+- Performance optimization
+- Scaling improvements
+
+## 🆘 Support
+
+For issues, questions, or suggestions, please open an issue on GitHub or contact the development team.
 
 ---
 
-**Created**: January 16, 2026  
-**Status**: Phase 1 Development  
-**Single Developer**: Solo project with modular architecture for future expansion
+**Created**: January 16, 2026
+**Status**: Phase 1 - MVP Development
+**Repository**: https://github.com/TartuDen/MMORPG_forum_vibe1
