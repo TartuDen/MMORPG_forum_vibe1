@@ -1,20 +1,44 @@
-import { useState } from 'react'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './services/authContext';
+import Navbar from './components/Navbar';
+import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+function AppContent() {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <div className="container"><p>Loading...</p></div>;
+  }
 
   return (
     <>
-      <div className="container">
-        <h1>MMO/RPG Game Community Forum</h1>
-        <p>Welcome to the forum</p>
-        <button onClick={() => setCount((count) => count + 1)}>
-          Count: {count}
-        </button>
-      </div>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route
+          path="/login"
+          element={isAuthenticated ? <Navigate to="/" /> : <LoginPage />}
+        />
+        <Route
+          path="/register"
+          element={isAuthenticated ? <Navigate to="/" /> : <RegisterPage />}
+        />
+      </Routes>
     </>
-  )
+  );
 }
 
-export default App
+function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </Router>
+  );
+}
+
+export default App;
