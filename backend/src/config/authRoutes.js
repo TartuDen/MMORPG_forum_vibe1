@@ -1,0 +1,128 @@
+import express from 'express';
+import { registerUser, loginUser, getUserById, updateUser } from '../modules/users.js';
+import { generateToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
+import { authenticate } from '../middleware/auth.js';
+
+const router = express.Router();
+
+// Register
+router.post('/register', async (req, res, next) => {
+  try {
+    const { username, email, password } = req.body;
+
+    if (!username || !email || !password) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        code: 'MISSING_FIELDS'
+      });
+    }
+
+    const user = await registerUser(username, email, password);
+    const token = generateToken(user.id);
+    const refreshToken = generateRefreshToken(user.id);
+
+    res.status(201).json({
+      data: {
+        user,
+        token,
+        refreshToken
+      },
+      message: 'User registered successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Login
+router.post('/login', async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        code: 'MISSING_FIELDS'
+      });
+    }
+
+    const user = await loginUser(email, password);
+    const token = generateToken(user.id);
+    const refreshToken = generateRefreshToken(user.id);
+
+    res.status(200).json({
+      data: {
+        user,
+        token,
+        refreshToken
+      },
+      message: 'Login successful'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Refresh Token
+router.post('/refresh', (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({
+        error: 'Refresh token required',
+        code: 'MISSING_REFRESH_TOKEN'
+      });
+    }
+
+    const decoded = verifyRefreshToken(refreshToken);
+    if (!decoded) {
+      return res.status(401).json({
+        error: 'Invalid refresh token',
+        code: 'INVALID_REFRESH_TOKEN'
+      });
+    }
+
+    const newToken = generateToken(decoded.userId);
+    res.status(200).json({
+      data: { token: newToken },
+      message: 'Token refreshed'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get current user
+router.get('/me', authenticate, async (req, res, next) => {
+  try {
+    const user = await getUserById(req.userId);
+    res.status(200).json({
+      data: user,
+      message: 'User profile retrieved'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update user profile
+router.put('/me', authenticate, async (req, res, next) => {
+  try {
+    const { username, profile_picture_url, bio } = req.body;
+    const user = await updateUser(req.userId, {
+      username,
+      profile_picture_url,
+      bio
+    });
+
+    res.status(200).json({
+      data: user,
+      message: 'User profile updated'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+export default router;

@@ -1,10 +1,32 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import authRoutes from './config/authRoutes.js';
+import userRoutes from './config/userRoutes.js';
+import forumRoutes from './config/forumRoutes.js';
+import { errorHandler, notFound } from './middleware/errors.js';
+import { initializeDatabase } from './db/init.js';
 
 dotenv.config();
 
 const app = express();
+
+// Initialize database on startup
+let dbInitialized = false;
+
+const ensureDbInitialized = async (req, res, next) => {
+  if (!dbInitialized) {
+    try {
+      await initializeDatabase();
+      dbInitialized = true;
+    } catch (error) {
+      console.error('Database initialization failed:', error);
+    }
+  }
+  next();
+};
+
+app.use(ensureDbInitialized);
 
 // Middleware
 app.use(cors({
@@ -15,15 +37,24 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Basic health check route
+// Routes
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
+// Auth routes
+app.use('/api/auth', authRoutes);
+
+// User routes
+app.use('/api/users', userRoutes);
+
+// Forum routes
+app.use('/api/forums', forumRoutes);
+
+// 404 handler
+app.use(notFound);
+
 // Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Internal Server Error' });
-});
+app.use(errorHandler);
 
 export default app;
