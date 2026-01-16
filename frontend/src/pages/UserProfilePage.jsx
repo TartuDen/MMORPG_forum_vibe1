@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api } from '../services/api';
+import { usersAPI } from '../services/api';
 import '../styles/user-profile.css';
 
 export default function UserProfilePage() {
@@ -15,7 +15,7 @@ export default function UserProfilePage() {
     const fetchUserData = async () => {
       try {
         setLoading(true);
-        const response = await api.get(`/api/users/${userId}`);
+        const response = await usersAPI.getUser(userId);
         setUser(response.data.data);
       } catch (err) {
         setError(err.response?.data?.error || 'Failed to load user profile');

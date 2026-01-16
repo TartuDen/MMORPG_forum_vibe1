@@ -77,7 +77,11 @@ export const forumsAPI = {
   getForums: (gameId = null) =>
     apiClient.get(`/forums${gameId ? `?gameId=${gameId}` : ''}`),
   getForum: (forumId, page = 1, limit = 10) =>
-    apiClient.get(`/forums/${forumId}?page=${page}&limit=${limit}`)
+    apiClient.get(`/forums/${forumId}?page=${page}&limit=${limit}`),
+  getGames: () =>
+    apiClient.get('/forums/games/all'),
+  createForum: (gameId, name, description) =>
+    apiClient.post('/forums/create', { gameId, name, description })
 };
 
 // Threads API

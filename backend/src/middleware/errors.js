@@ -26,6 +26,7 @@ export const errorHandler = (err, req, res, next) => {
   // Default error
   res.status(err.status || 500).json({
     error: err.message || 'Internal server error',
+    message: err.message || 'Internal server error',
     code: err.code || 'SERVER_ERROR'
   });
 };
