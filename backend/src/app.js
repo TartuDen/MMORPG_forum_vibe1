@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import authRoutes from './config/authRoutes.js';
 import userRoutes from './config/userRoutes.js';
 import forumRoutes from './config/forumRoutes.js';
+import searchRoutes from './config/searchRoutes.js';
 import { errorHandler, notFound } from './middleware/errors.js';
 import { initializeDatabase } from './db/init.js';
 
@@ -50,6 +51,9 @@ app.use('/api/users', userRoutes);
 
 // Forum routes
 app.use('/api/forums', forumRoutes);
+
+// Search routes
+app.use('/api/search', searchRoutes);
 
 // 404 handler
 app.use(notFound);

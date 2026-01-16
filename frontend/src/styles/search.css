@@ -1,0 +1,137 @@
+.search-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.search-header h2 {
+  color: var(--color-dark);
+  margin: 0 0 1rem 0;
+}
+
+.search-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #999;
+}
+
+.search-empty h2 {
+  color: var(--color-dark);
+  margin-bottom: 1rem;
+}
+
+.search-results {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.search-tabs {
+  display: flex;
+  border-bottom: 2px solid var(--color-border);
+  background: white;
+}
+
+.tab {
+  flex: 1;
+  padding: 1rem;
+  border: none;
+  background: white;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #666;
+  transition: all 0.2s ease;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+}
+
+.tab:hover {
+  color: var(--color-dark);
+  background: #f9fafb;
+}
+
+.tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.search-content {
+  padding: 1.5rem;
+}
+
+.results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.result-item {
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.result-item:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+  transform: translateY(-2px);
+}
+
+.result-item h4 {
+  color: var(--color-primary);
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+}
+
+.result-item p {
+  color: #666;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.5;
+}
+
+.result-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: #999;
+}
+
+.result-meta span {
+  display: flex;
+  align-items: center;
+}
+
+.user-result {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.user-badge {
+  background: var(--color-primary);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.no-results {
+  text-align: center;
+  padding: 2rem;
+  color: #999;
+}
+
+.error-message {
+  background-color: #fee;
+  color: #c00;
+  padding: 1rem;
+  border-radius: 4px;
+  border-left: 4px solid #c00;
+  margin-bottom: 1rem;
+}
