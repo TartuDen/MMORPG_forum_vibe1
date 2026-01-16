@@ -15,6 +15,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 2rem;
 }
 
 .navbar-brand h1 {
@@ -25,6 +26,42 @@
 
 .navbar-brand h1:hover {
   color: var(--color-secondary);
+}
+
+.navbar-search {
+  flex: 1;
+  max-width: 400px;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.search-input {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.search-input:focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+}
+
+.search-btn {
+  padding: 0.6rem 1rem;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.search-btn:hover {
+  background-color: #5558e3;
 }
 
 .navbar-menu {
@@ -71,4 +108,20 @@
 
 .logout-btn:hover {
   background-color: #dc2626;
+}
+
+@media (max-width: 768px) {
+  .navbar-container {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .navbar-search {
+    max-width: 100%;
+  }
+
+  .navbar-menu {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
