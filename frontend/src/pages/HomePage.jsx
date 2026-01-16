@@ -44,6 +44,11 @@ export default function HomePage() {
               key={forum.id}
               className="forum-card"
               onClick={() => navigate(`/forums/${forum.id}`)}
+              role="button"
+              tabIndex={0}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') navigate(`/forums/${forum.id}`);
+              }}
             >
               <h3>{forum.name}</h3>
               <p>{forum.description}</p>
