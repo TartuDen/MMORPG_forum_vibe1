@@ -119,6 +119,82 @@
   gap: 1.5rem;
 }
 
+.tag-browse {
+  margin-bottom: 2.5rem;
+}
+
+.tag-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.tag-chip {
+  border: 1px solid var(--color-border);
+  background: #ffffff;
+  color: var(--color-dark);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tag-chip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.12);
+}
+
+.tag-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-bottom: 2.5rem;
+}
+
+.tag-section {
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 1.5rem;
+  background: #ffffff;
+}
+
+.tag-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.tag-section-header h3 {
+  margin: 0;
+  color: var(--color-dark);
+}
+
+.tag-link {
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+}
+
+.tag-link:hover {
+  text-decoration: underline;
+}
+
+.tag-games {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
 .game-card {
   background: linear-gradient(145deg, #ffffff, #f8fafc);
   border: 1px solid var(--color-border);
@@ -133,6 +209,14 @@
   background-position: center;
   position: relative;
   overflow: hidden;
+}
+
+.game-card.compact {
+  padding: 1rem;
+}
+
+.game-card.compact .tag-row {
+  display: none;
 }
 
 .game-card:hover {

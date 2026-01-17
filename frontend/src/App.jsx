@@ -11,6 +11,7 @@ import CreateForumPage from './pages/CreateForumPage';
 import UserProfilePage from './pages/UserProfilePage';
 import SearchPage from './pages/SearchPage';
 import MessagesPage from './pages/MessagesPage';
+import GameCategoryPage from './pages/GameCategoryPage';
 import './App.css';
 
 function ProtectedRoute({ children, isAuthenticated, loading }) {
@@ -42,6 +43,7 @@ function AppContent() {
         />
         <Route path="/forums/:forumId" element={<ForumPage />} />
         <Route path="/forums/:forumId/threads/:threadId" element={<ThreadPage />} />
+        <Route path="/games/category/:tag" element={<GameCategoryPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/user/:userId" element={<UserProfilePage />} />
         <Route

@@ -17,6 +17,8 @@ const AVAILABLE_TAGS = [
   'casual',
   'open-world',
   'dungeon',
+  'online',
+  'single',
   'solo',
   'party',
   'full-loot'

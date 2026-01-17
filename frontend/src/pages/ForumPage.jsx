@@ -63,7 +63,10 @@ export default function ForumPage() {
           <div className="forum-hero-content">
             <span className="forum-game-name">{forum.game_name || 'Game Forum'}</span>
             <h2>{forum.name}</h2>
-            <p>{forum.description}</p>
+            {forum.game_description && (
+              <p className="forum-game-description">{forum.game_description}</p>
+            )}
+            <p className="forum-forum-description">{forum.description}</p>
           </div>
         </div>
         {isAdmin && (
