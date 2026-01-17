@@ -128,6 +128,14 @@ export default function UserProfilePage() {
           <h1>{user.username}</h1>
           {user.bio && <p className="profile-bio">{user.bio}</p>}
           <p className="profile-meta">Member since {memberSince}</p>
+          {!isOwnProfile && currentUser && (
+            <button
+              className="submit-btn"
+              onClick={() => navigate(`/messages?userId=${user.id}`)}
+            >
+              Message
+            </button>
+          )}
         </div>
       </div>
 

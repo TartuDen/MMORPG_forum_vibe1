@@ -88,6 +88,8 @@ export const authAPI = {
     apiClient.post('/auth/refresh'),
   getCurrentUser: () =>
     apiClient.get('/auth/me'),
+  getSocketToken: () =>
+    apiClient.get('/auth/socket-token'),
   updateProfile: (updates) =>
     apiClient.put('/auth/me', updates),
   uploadAvatar: (file) => {
@@ -105,6 +107,11 @@ export const usersAPI = {
     apiClient.get(`/users/${id}`),
   getUsers: (page = 1, limit = 10) =>
     apiClient.get(`/users?page=${page}&limit=${limit}`)
+};
+
+export const searchAPI = {
+  users: (query, page = 1, limit = 10) =>
+    apiClient.get(`/search/users?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`)
 };
 
 // Forums API
@@ -145,6 +152,20 @@ export const commentsAPI = {
     apiClient.put(`/forums/${forumId}/threads/${threadId}/comments/${commentId}`, { content }),
   deleteComment: (forumId, threadId, commentId) =>
     apiClient.delete(`/forums/${forumId}/threads/${threadId}/comments/${commentId}`)
+};
+
+// Messaging API
+export const messagesAPI = {
+  listConversations: () =>
+    apiClient.get('/messages/conversations'),
+  createConversation: (userId) =>
+    apiClient.post('/messages/conversations', { userId }),
+  listMessages: (conversationId, page = 1, limit = 20) =>
+    apiClient.get(`/messages/conversations/${conversationId}/messages?page=${page}&limit=${limit}`),
+  sendMessage: (conversationId, body) =>
+    apiClient.post(`/messages/conversations/${conversationId}/messages`, { body }),
+  markRead: (conversationId) =>
+    apiClient.post(`/messages/conversations/${conversationId}/read`, {})
 };
 
 export default apiClient;

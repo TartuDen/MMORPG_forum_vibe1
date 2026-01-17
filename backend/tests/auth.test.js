@@ -508,6 +508,81 @@ runTest('uploads avatar image and stores data URL', async () => {
   assert.ok(upload.body?.data?.avatar_url?.startsWith('data:image/png;base64,'));
 });
 
+runTest('issues socket token for authenticated user', async () => {
+  const client = createClient();
+  const suffix = Date.now();
+  const username = `sock_${suffix}`.slice(0, 20);
+  const email = `sock_${suffix}@example.com`;
+  const password = 'StrongPass1';
+
+  const register = await client.post('/auth/register', {
+    username,
+    email,
+    password,
+    confirmPassword: password
+  });
+  assert.equal(register.status, 201);
+
+  const socketToken = await client.get('/auth/socket-token');
+  assert.equal(socketToken.status, 200);
+  assert.ok(socketToken.body?.data?.token);
+});
+
+runTest('creates conversation and sends messages', async () => {
+  const alice = createClient();
+  const bob = createClient();
+  const suffix = Date.now();
+  const aliceName = `alice_${suffix}`.slice(0, 20);
+  const bobName = `bob_${suffix}`.slice(0, 20);
+
+  const aliceRegister = await alice.post('/auth/register', {
+    username: aliceName,
+    email: `alice_${suffix}@example.com`,
+    password: 'StrongPass1',
+    confirmPassword: 'StrongPass1'
+  });
+  assert.equal(aliceRegister.status, 201);
+  const aliceId = aliceRegister.body?.data?.user?.id;
+  assert.ok(aliceId);
+
+  const bobRegister = await bob.post('/auth/register', {
+    username: bobName,
+    email: `bob_${suffix}@example.com`,
+    password: 'StrongPass1',
+    confirmPassword: 'StrongPass1'
+  });
+  assert.equal(bobRegister.status, 201);
+  const bobId = bobRegister.body?.data?.user?.id;
+  assert.ok(bobId);
+
+  const convo = await alice.post('/messages/conversations', { userId: bobId });
+  assert.equal(convo.status, 201);
+  const conversationId = convo.body?.data?.conversationId;
+  assert.ok(conversationId);
+
+  const send = await alice.post(`/messages/conversations/${conversationId}/messages`, { body: 'Hi Bob' });
+  assert.equal(send.status, 201);
+  assert.equal(send.body?.data?.body, 'Hi Bob');
+
+  const messages = await bob.get(`/messages/conversations/${conversationId}/messages`);
+  assert.equal(messages.status, 200);
+  assert.equal(messages.body?.data?.length, 1);
+  assert.equal(messages.body?.data?.[0]?.body, 'Hi Bob');
+
+  const listBeforeRead = await bob.get('/messages/conversations');
+  assert.equal(listBeforeRead.status, 200);
+  const convoBefore = listBeforeRead.body?.data?.find((conv) => conv.id === conversationId);
+  assert.equal(convoBefore?.unread_count, 1);
+
+  const read = await bob.post(`/messages/conversations/${conversationId}/read`, {});
+  assert.equal(read.status, 200);
+
+  const listAfterRead = await bob.get('/messages/conversations');
+  assert.equal(listAfterRead.status, 200);
+  const convoAfter = listAfterRead.body?.data?.find((conv) => conv.id === conversationId);
+  assert.equal(convoAfter?.unread_count, 0);
+});
+
 const run = async () => {
   let failures = 0;
 
