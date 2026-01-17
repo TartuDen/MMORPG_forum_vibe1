@@ -34,10 +34,18 @@ export default function SearchPage() {
         const userRes = await axios.get(`${API_BASE_URL}/search/users?q=${encodeURIComponent(query)}&limit=20`);
         const forumRes = await axios.get(`${API_BASE_URL}/search/forums?q=${encodeURIComponent(query)}&limit=20`);
 
-        setThreads(threadRes.data.data || []);
-        setComments(commentRes.data.data || []);
-        setUsers(userRes.data.data || []);
-        setForums(forumRes.data.data || []);
+        const threadsData = threadRes.data.data || threadRes.data.results || [];
+        const commentsData = commentRes.data.data || commentRes.data.results || [];
+        const usersData = userRes.data.data || userRes.data.results || [];
+        const forumsData = forumRes.data.data || forumRes.data.results || [];
+
+        setThreads(threadsData);
+        setComments(commentsData);
+        setUsers(usersData);
+        setForums(forumsData);
+        if (forumsData.length > 0 && threadsData.length === 0 && commentsData.length === 0) {
+          setActiveTab('forums');
+        }
       } catch (err) {
         setError('Search failed. Please try again.');
         console.error(err);
