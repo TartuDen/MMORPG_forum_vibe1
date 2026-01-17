@@ -343,7 +343,7 @@ router.delete('/:forumId/threads/:threadId', authenticate, writeLimiter, async (
 router.post('/:forumId/threads/:threadId/comments', authenticate, writeLimiter, async (req, res, next) => {
   try {
     const { threadId } = req.params;
-    const { content } = req.body;
+    const { content, parent_comment_id } = req.body;
 
     if (!content) {
       return res.status(400).json({
@@ -359,7 +359,7 @@ router.post('/:forumId/threads/:threadId/comments', authenticate, writeLimiter, 
       });
     }
 
-    const comment = await createComment(threadId, req.userId, content);
+    const comment = await createComment(threadId, req.userId, content, parent_comment_id ?? null);
 
     res.status(201).json({
       data: comment,

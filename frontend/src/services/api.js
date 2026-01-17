@@ -146,8 +146,11 @@ export const threadsAPI = {
 
 // Comments API
 export const commentsAPI = {
-  createComment: (forumId, threadId, content) =>
-    apiClient.post(`/forums/${forumId}/threads/${threadId}/comments`, { content }),
+  createComment: (forumId, threadId, content, parentCommentId = null) =>
+    apiClient.post(`/forums/${forumId}/threads/${threadId}/comments`, {
+      content,
+      parent_comment_id: parentCommentId
+    }),
   updateComment: (forumId, threadId, commentId, content) =>
     apiClient.put(`/forums/${forumId}/threads/${threadId}/comments/${commentId}`, { content }),
   deleteComment: (forumId, threadId, commentId) =>

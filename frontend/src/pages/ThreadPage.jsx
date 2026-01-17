@@ -15,6 +15,9 @@ export default function ThreadPage() {
   const [thread, setThread] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
+  const [showComposer, setShowComposer] = useState(false);
+  const [replyTarget, setReplyTarget] = useState(null);
+  const [replyContent, setReplyContent] = useState('');
   const [pagination, setPagination] = useState({ page: 1, limit: 10 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -120,6 +123,7 @@ export default function ThreadPage() {
     try {
       await commentsAPI.createComment(forumId, threadId, newComment);
       setNewComment('');
+      setShowComposer(false);
       const response = await threadsAPI.getThread(
         forumId,
         threadId,
@@ -130,6 +134,31 @@ export default function ThreadPage() {
       setComments(response.data.data.comments);
     } catch (err) {
       setError('Failed to create comment');
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReplySubmit = async (e) => {
+    e.preventDefault();
+    if (!replyContent.trim() || !replyTarget) return;
+
+    setSubmitting(true);
+    try {
+      await commentsAPI.createComment(forumId, threadId, replyContent, replyTarget.id);
+      setReplyContent('');
+      setReplyTarget(null);
+      const response = await threadsAPI.getThread(
+        forumId,
+        threadId,
+        pagination.page,
+        pagination.limit
+      );
+      setThread(response.data.data);
+      setComments(response.data.data.comments);
+    } catch (err) {
+      setError('Failed to create reply');
       console.error(err);
     } finally {
       setSubmitting(false);
@@ -147,15 +176,40 @@ export default function ThreadPage() {
     }
   };
 
+  const isThreadOwner = user && thread && user.id === thread.user_id;
+  const isAdmin = user && user.role === 'admin';
+  const viewerVote = thread?.viewer_vote === null || thread?.viewer_vote === undefined
+    ? null
+    : Number(thread?.viewer_vote);
+  const commentsById = useMemo(() => new Map(comments.map((comment) => [comment.id, comment])), [comments]);
+  const topLevelComments = useMemo(() => (
+    comments
+      .filter((comment) => !comment.parent_comment_id)
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+  ), [comments]);
+  const repliesByParent = useMemo(() => {
+    const map = {};
+    comments.forEach((comment) => {
+      if (comment.parent_comment_id) {
+        if (!map[comment.parent_comment_id]) {
+          map[comment.parent_comment_id] = [];
+        }
+        map[comment.parent_comment_id].push(comment);
+      }
+    });
+    Object.values(map).forEach((list) => {
+      list.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    });
+    return map;
+  }, [comments]);
+
+  const replySnippet = replyTarget?.content
+    ? `${replyTarget.content.slice(0, 160)}${replyTarget.content.length > 160 ? '...' : ''}`
+    : '';
+
   if (loading) return <div className="container"><p>Loading thread...</p></div>;
   if (error) return <div className="container"><p className="error-message">{error}</p></div>;
   if (!thread) return <div className="container"><p>Thread not found</p></div>;
-
-  const isThreadOwner = user && user.id === thread.user_id;
-  const isAdmin = user && user.role === 'admin';
-  const viewerVote = thread.viewer_vote === null || thread.viewer_vote === undefined
-    ? null
-    : Number(thread.viewer_vote);
 
   const handleThreadVote = async (value) => {
     if (!isAuthenticated) {
@@ -264,18 +318,41 @@ export default function ThreadPage() {
         <h3>Comments ({comments.length})</h3>
 
         {isAuthenticated ? (
-          <form className="comment-form" onSubmit={handleCreateComment}>
-            <textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Write a comment..."
-              rows={4}
-              required
-            />
-            <button type="submit" disabled={submitting} className="submit-btn">
-              {submitting ? 'Posting...' : 'Post Comment'}
+          <>
+            <button
+              type="button"
+              className="comment-trigger"
+              onClick={() => {
+                setShowComposer(true);
+                setReplyTarget(null);
+              }}
+            >
+              Write a comment
             </button>
-          </form>
+            {showComposer && (
+              <form className="comment-form" onSubmit={handleCreateComment}>
+                <textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Write a comment..."
+                  rows={4}
+                  required
+                />
+                <div className="comment-form-actions">
+                  <button
+                    type="button"
+                    className="cancel-btn"
+                    onClick={() => setShowComposer(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={submitting} className="submit-btn">
+                    {submitting ? 'Posting...' : 'Post Comment'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </>
         ) : (
           <p className="login-prompt">
             <a href="/login">Login</a> to comment on this thread
@@ -286,25 +363,88 @@ export default function ThreadPage() {
           {comments.length === 0 ? (
             <p className="no-content">No comments yet</p>
           ) : (
-            comments.map((comment) => (
-              <Comment
-                key={comment.id}
-                comment={comment}
-                forumId={forumId}
-                threadId={threadId}
-                isOwner={user && user.id === comment.user_id}
-                onUpdate={() => {
-                  const response = threadsAPI.getThread(
-                    forumId,
-                    threadId,
-                    pagination.page,
-                    pagination.limit
+            topLevelComments.map((comment) => (
+              <div key={comment.id} className="comment-thread">
+                <Comment
+                  comment={comment}
+                  forumId={forumId}
+                  threadId={threadId}
+                  isOwner={user && user.id === comment.user_id}
+                  canReply={isAuthenticated}
+                  onReply={() => {
+                    setReplyTarget(comment);
+                    setShowComposer(false);
+                    setReplyContent('');
+                  }}
+                  onUpdate={() => {
+                    const response = threadsAPI.getThread(
+                      forumId,
+                      threadId,
+                      pagination.page,
+                      pagination.limit
+                    );
+                    response.then((res) => {
+                      setComments(res.data.data.comments);
+                    });
+                  }}
+                />
+                {replyTarget?.id === comment.id && isAuthenticated && (
+                  <form className="reply-form" onSubmit={handleReplySubmit}>
+                    <div className="reply-quote">
+                      <strong>{replyTarget.author_username}</strong>
+                      <span>{replySnippet}</span>
+                    </div>
+                    <textarea
+                      value={replyContent}
+                      onChange={(e) => setReplyContent(e.target.value)}
+                      placeholder="Write your reply..."
+                      rows={3}
+                      required
+                    />
+                    <div className="comment-form-actions">
+                      <button
+                        type="button"
+                        className="cancel-btn"
+                        onClick={() => setReplyTarget(null)}
+                      >
+                        Cancel
+                      </button>
+                      <button type="submit" disabled={submitting} className="submit-btn">
+                        {submitting ? 'Posting...' : 'Post Reply'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+                {repliesByParent[comment.id]?.map((reply) => {
+                  const parentComment = commentsById.get(reply.parent_comment_id) || {
+                    author_username: 'Deleted',
+                    content: 'Deleted comment'
+                  };
+                  return (
+                    <div key={reply.id} className="comment-reply">
+                      <Comment
+                        comment={reply}
+                        forumId={forumId}
+                        threadId={threadId}
+                        isOwner={user && user.id === reply.user_id}
+                        canReply={false}
+                        parentComment={parentComment}
+                        onUpdate={() => {
+                          const response = threadsAPI.getThread(
+                            forumId,
+                            threadId,
+                            pagination.page,
+                            pagination.limit
+                          );
+                          response.then((res) => {
+                            setComments(res.data.data.comments);
+                          });
+                        }}
+                      />
+                    </div>
                   );
-                  response.then((res) => {
-                    setComments(res.data.data.comments);
-                  });
-                }}
-              />
+                })}
+              </div>
             ))
           )}
         </div>

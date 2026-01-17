@@ -4,7 +4,16 @@ import { commentsAPI, reputationAPI } from '../services/api';
 import { useAuth } from '../services/authContext';
 import '../styles/comment.css';
 
-export default function Comment({ comment, forumId, threadId, isOwner, onUpdate }) {
+export default function Comment({
+  comment,
+  forumId,
+  threadId,
+  isOwner,
+  onUpdate,
+  canReply = false,
+  onReply,
+  parentComment = null
+}) {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -63,6 +72,10 @@ export default function Comment({ comment, forumId, threadId, isOwner, onUpdate 
     return <div className="comment deleted-comment">Comment deleted</div>;
   }
 
+  const quoteText = parentComment?.content
+    ? `${parentComment.content.slice(0, 160)}${parentComment.content.length > 160 ? '...' : ''}`
+    : '';
+
   const handleVote = async (value) => {
     if (!isAuthenticated) {
       navigate('/login');
@@ -92,6 +105,12 @@ export default function Comment({ comment, forumId, threadId, isOwner, onUpdate 
 
   return (
     <div className="comment">
+      {parentComment && (
+        <div className="comment-quote">
+          <div className="quote-author">{parentComment.author_username || 'User'}</div>
+          <div className="quote-text">{quoteText}</div>
+        </div>
+      )}
       <div className="comment-header">
         <div className="comment-author">
           {comment.author_avatar_url ? (
@@ -137,6 +156,15 @@ export default function Comment({ comment, forumId, threadId, isOwner, onUpdate 
           </div>
           {isOwner && !isEditing && (
             <div className="comment-actions">
+              {canReply && (
+                <button
+                  className="reply-btn"
+                  onClick={onReply}
+                  title="Reply to comment"
+                >
+                  Answer
+                </button>
+              )}
               <button
                 className="edit-btn"
                 onClick={() => setIsEditing(true)}
@@ -151,6 +179,17 @@ export default function Comment({ comment, forumId, threadId, isOwner, onUpdate 
                 title="Delete comment"
               >
                 Delete
+              </button>
+            </div>
+          )}
+          {!isOwner && canReply && !isEditing && (
+            <div className="comment-actions">
+              <button
+                className="reply-btn"
+                onClick={onReply}
+                title="Reply to comment"
+              >
+                Answer
               </button>
             </div>
           )}

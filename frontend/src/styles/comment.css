@@ -58,6 +58,38 @@
   gap: 0.5rem;
 }
 
+.comment-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.comment-reply {
+  margin-left: 2rem;
+  border-left: 2px solid #e5e7eb;
+  padding-left: 1rem;
+}
+
+.comment-quote {
+  background: #f8fafc;
+  border-left: 3px solid var(--color-primary);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.quote-author {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.8rem;
+  margin-bottom: 0.25rem;
+}
+
+.quote-text {
+  color: #475569;
+  font-size: 0.85rem;
+}
+
 .comment-controls {
   display: flex;
   align-items: center;
@@ -116,6 +148,22 @@
   cursor: pointer;
   font-size: 0.8rem;
   transition: all 0.2s ease;
+}
+
+.reply-btn {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #cbd5f5;
+  background: #eef2ff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: #4338ca;
+  transition: all 0.2s ease;
+}
+
+.reply-btn:hover:not(:disabled) {
+  background-color: #4338ca;
+  color: white;
 }
 
 .edit-btn {
