@@ -124,6 +124,18 @@
   padding-bottom: 0.75rem;
 }
 
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  color: var(--color-dark);
+}
+
+.toggle-row input {
+  accent-color: var(--color-primary);
+}
+
 .profile-detail {
   display: flex;
   justify-content: space-between;

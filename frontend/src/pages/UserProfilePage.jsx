@@ -7,7 +7,7 @@ import '../styles/user-profile.css';
 export default function UserProfilePage() {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { user: currentUser, uploadAvatar } = useAuth();
+  const { user: currentUser, uploadAvatar, updateProfile } = useAuth();
   const [user, setUser] = useState(null);
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,6 +16,9 @@ export default function UserProfilePage() {
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarError, setAvatarError] = useState('');
   const [avatarSaving, setAvatarSaving] = useState(false);
+  const [hideReputation, setHideReputation] = useState(false);
+  const [reputationSaving, setReputationSaving] = useState(false);
+  const [reputationError, setReputationError] = useState('');
   const maxAvatarBytes = 100 * 1024;
 
   useEffect(() => {
@@ -42,6 +45,12 @@ export default function UserProfilePage() {
     fetchUserData();
   }, [userId]);
 
+  useEffect(() => {
+    if (user) {
+      setHideReputation(Boolean(user.hide_reputation));
+    }
+  }, [user]);
+
   if (loading) {
     return <div className="container"><p className="loading">Loading profile...</p></div>;
   }
@@ -50,7 +59,7 @@ export default function UserProfilePage() {
     return (
       <div className="container">
         <div className="error-message">{error}</div>
-        <button className="btn-back" onClick={() => navigate(-1)}>‚Üê Back</button>
+        <button className="btn-back" onClick={() => navigate(-1)}>É+? Back</button>
       </div>
     );
   }
@@ -59,7 +68,7 @@ export default function UserProfilePage() {
     return (
       <div className="container">
         <div className="error-message">User not found</div>
-        <button className="btn-back" onClick={() => navigate(-1)}>‚Üê Back</button>
+        <button className="btn-back" onClick={() => navigate(-1)}>É+? Back</button>
       </div>
     );
   }
@@ -106,15 +115,35 @@ export default function UserProfilePage() {
     }
   };
 
+  const handleReputationToggle = async (event) => {
+    const nextValue = event.target.checked;
+    setHideReputation(nextValue);
+    setReputationError('');
+    setReputationSaving(true);
+    try {
+      const updated = await updateProfile({ hide_reputation: nextValue });
+      setUser(updated);
+    } catch (err) {
+      setReputationError(err.response?.data?.error || 'Failed to update reputation setting');
+      setHideReputation(!nextValue);
+    } finally {
+      setReputationSaving(false);
+    }
+  };
+
   const memberSince = new Date(user.created_at).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
 
+  const reputationDisplay = user.role === 'admin'
+    ? 'N/A'
+    : (user.hide_reputation ? 'Hidden' : (user.reputation ?? 0));
+
   return (
     <div className="container">
-      <button className="btn-back" onClick={() => navigate(-1)}>‚Üê Back</button>
+      <button className="btn-back" onClick={() => navigate(-1)}>É+? Back</button>
       
       <div className="profile-header">
         <div className="profile-avatar">
@@ -162,6 +191,22 @@ export default function UserProfilePage() {
         </div>
       )}
 
+      {isOwnProfile && (
+        <div className="profile-section">
+          <h2>Reputation Visibility</h2>
+          <label className="toggle-row">
+            <input
+              type="checkbox"
+              checked={hideReputation}
+              onChange={handleReputationToggle}
+              disabled={reputationSaving}
+            />
+            <span>Hide my reputation on my profile</span>
+          </label>
+          {reputationError && <div className="error-message">{reputationError}</div>}
+        </div>
+      )}
+
       <div className="profile-stats">
         <div className="stat-card">
           <div className="stat-value">{user.total_posts || 0}</div>
@@ -172,7 +217,7 @@ export default function UserProfilePage() {
           <div className="stat-label">Threads Created</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{user.reputation || 0}</div>
+          <div className="stat-value">{reputationDisplay}</div>
           <div className="stat-label">Reputation</div>
         </div>
         <div className="stat-card">

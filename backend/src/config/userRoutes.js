@@ -1,7 +1,7 @@
 import express from 'express';
 import pool from '../db/connection.js';
 import { authenticate, authorize } from '../middleware/auth.js';
-import { banUser, unbanUser, updateUserRole } from '../modules/users.js';
+import { banUser, unbanUser, updateUserRole, getUserReputation } from '../modules/users.js';
 import { cacheResponse } from '../middleware/cache.js';
 import { writeLimiter } from '../middleware/rateLimit.js';
 
@@ -13,7 +13,10 @@ router.get('/:id', cacheResponse(30000), async (req, res, next) => {
     const { id } = req.params;
 
     const result = await pool.query(
-      'SELECT id, username, role, profile_picture_url, avatar_url, bio, total_posts, created_at FROM users WHERE id = $1',
+      `SELECT id, username, role, profile_picture_url, avatar_url, bio,
+              total_posts, hide_reputation, created_at
+       FROM users
+       WHERE id = $1`,
       [id]
     );
 
@@ -24,8 +27,14 @@ router.get('/:id', cacheResponse(30000), async (req, res, next) => {
       });
     }
 
+    const user = result.rows[0];
+    let reputation = null;
+    if (user.role !== 'admin' && !user.hide_reputation) {
+      reputation = await getUserReputation(user.id, user.role);
+    }
+
     res.status(200).json({
-      data: result.rows[0],
+      data: { ...user, reputation },
       message: 'User retrieved'
     });
   } catch (error) {

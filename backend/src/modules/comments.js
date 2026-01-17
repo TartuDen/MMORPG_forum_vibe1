@@ -1,13 +1,23 @@
 import pool from '../db/connection.js';
 
-export const getThreadComments = async (threadId, page = 1, limit = 10) => {
+export const getThreadComments = async (threadId, page = 1, limit = 10, viewerId = null) => {
   const offset = (page - 1) * limit;
 
   const query = `
     SELECT 
       c.id, c.thread_id, c.user_id, c.content,
       c.is_edited, c.is_deleted, c.created_at, c.updated_at,
-      u.username as author_username, u.profile_picture_url as author_picture, u.role as author_role, u.avatar_url as author_avatar_url
+      u.username as author_username, u.profile_picture_url as author_picture, u.role as author_role, u.avatar_url as author_avatar_url,
+      COALESCE((
+        SELECT SUM(cv.value)
+        FROM comment_votes cv
+        WHERE cv.comment_id = c.id
+      ), 0) as vote_score,
+      (
+        SELECT cv.value
+        FROM comment_votes cv
+        WHERE cv.comment_id = c.id AND cv.user_id = $4
+      ) as viewer_vote
     FROM comments c
     JOIN users u ON c.user_id = u.id
     WHERE c.thread_id = $1 AND c.is_deleted = false
@@ -15,7 +25,7 @@ export const getThreadComments = async (threadId, page = 1, limit = 10) => {
     LIMIT $2 OFFSET $3
   `;
 
-  const result = await pool.query(query, [threadId, limit, offset]);
+  const result = await pool.query(query, [threadId, limit, offset, viewerId]);
 
   // Get total count
   const countResult = await pool.query('SELECT COUNT(*) as total FROM comments WHERE thread_id = $1 AND is_deleted = false', [threadId]);

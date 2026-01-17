@@ -7,11 +7,26 @@ import pool from '../db/connection.js';
 import { parseImageDataUrl } from '../utils/validators.js';
 import { cacheResponse } from '../middleware/cache.js';
 import { writeLimiter } from '../middleware/rateLimit.js';
+import { verifyToken } from '../utils/jwt.js';
+import { parseCookies } from '../utils/cookies.js';
 
 const router = express.Router();
 const MAX_THREAD_TITLE_LENGTH = 200;
 const MAX_THREAD_CONTENT_LENGTH = 5000;
 const MAX_COMMENT_LENGTH = 2000;
+
+const getViewerId = (req) => {
+  const authHeader = req.headers['authorization'];
+  const bearerToken = authHeader && authHeader.split(' ')[1];
+  const cookies = parseCookies(req.headers.cookie);
+  const token = bearerToken || cookies.access_token;
+  if (!token) {
+    return null;
+  }
+
+  const decoded = verifyToken(token);
+  return decoded?.userId || null;
+};
 
 // Get all games
 router.get('/games/all', cacheResponse(60000), async (req, res, next) => {
@@ -179,14 +194,15 @@ router.get('/', cacheResponse(30000), async (req, res, next) => {
 });
 
 // Get forum by ID with threads
-router.get('/:forumId', cacheResponse(15000), async (req, res, next) => {
+router.get('/:forumId', async (req, res, next) => {
   try {
     const { forumId } = req.params;
     const page = parseInt(req.query.page) || 1;
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
 
     const forum = await getForumById(forumId);
-    const { threads, pagination } = await getAllThreads(forumId, page, limit);
+    const viewerId = getViewerId(req);
+    const { threads, pagination } = await getAllThreads(forumId, page, limit, viewerId);
 
     res.status(200).json({
       data: {
@@ -202,16 +218,17 @@ router.get('/:forumId', cacheResponse(15000), async (req, res, next) => {
 });
 
 // Get thread by ID with comments
-router.get('/:forumId/threads/:threadId', cacheResponse(15000), async (req, res, next) => {
+router.get('/:forumId/threads/:threadId', async (req, res, next) => {
   try {
     const { threadId } = req.params;
     const page = parseInt(req.query.page) || 1;
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
 
-    const thread = await getThreadById(threadId);
+    const viewerId = getViewerId(req);
+    const thread = await getThreadById(threadId, viewerId);
     await incrementThreadViews(threadId);
 
-    const { comments, pagination } = await getThreadComments(threadId, page, limit);
+    const { comments, pagination } = await getThreadComments(threadId, page, limit, viewerId);
 
     res.status(200).json({
       data: {

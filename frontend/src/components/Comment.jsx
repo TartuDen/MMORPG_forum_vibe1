@@ -1,14 +1,29 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { commentsAPI } from '../services/api';
+import { commentsAPI, reputationAPI } from '../services/api';
+import { useAuth } from '../services/authContext';
 import '../styles/comment.css';
 
 export default function Comment({ comment, forumId, threadId, isOwner, onUpdate }) {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [voteScore, setVoteScore] = useState(comment.vote_score ?? 0);
+  const [viewerVote, setViewerVote] = useState(comment.viewer_vote ?? null);
+  const [voteError, setVoteError] = useState('');
+  const [voteLoading, setVoteLoading] = useState(false);
+
+  useEffect(() => {
+    setVoteScore(comment.vote_score ?? 0);
+    setViewerVote(
+      comment.viewer_vote === null || comment.viewer_vote === undefined
+        ? null
+        : Number(comment.viewer_vote)
+    );
+  }, [comment.vote_score, comment.viewer_vote, comment.id]);
 
   const handleUpdate = async () => {
     if (!editContent.trim()) {
@@ -48,6 +63,33 @@ export default function Comment({ comment, forumId, threadId, isOwner, onUpdate 
     return <div className="comment deleted-comment">Comment deleted</div>;
   }
 
+  const handleVote = async (value) => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    if (isOwner) {
+      setVoteError('You cannot vote on your own comment.');
+      return;
+    }
+
+    setVoteError('');
+    setVoteLoading(true);
+    try {
+      const nextValue = viewerVote === value
+        ? 0
+        : (viewerVote === null ? value : 0);
+      const response = await reputationAPI.voteComment(comment.id, nextValue);
+      setVoteScore(response.data.data.score);
+      setViewerVote(response.data.data.user_vote);
+    } catch (err) {
+      setVoteError(err.response?.data?.error || 'Failed to record vote');
+    } finally {
+      setVoteLoading(false);
+    }
+  };
+
   return (
     <div className="comment">
       <div className="comment-header">
@@ -71,28 +113,52 @@ export default function Comment({ comment, forumId, threadId, isOwner, onUpdate 
           </span>
           {comment.is_edited && <span className="edited-badge">edited</span>}
         </div>
-        {isOwner && !isEditing && (
-          <div className="comment-actions">
+        <div className="comment-controls">
+          <div className="comment-vote">
             <button
-              className="edit-btn"
-              onClick={() => setIsEditing(true)}
-              title="Edit comment"
+              type="button"
+              className={`vote-btn up ${viewerVote === 1 ? 'active' : ''}`}
+              onClick={() => handleVote(1)}
+              disabled={voteLoading}
+              title="Upvote comment"
             >
-              Edit
+              ▲
             </button>
+            <span className="vote-score">{voteScore}</span>
             <button
-              className="delete-btn"
-              onClick={handleDelete}
-              disabled={submitting}
-              title="Delete comment"
+              type="button"
+              className={`vote-btn down ${viewerVote === -1 ? 'active' : ''}`}
+              onClick={() => handleVote(-1)}
+              disabled={voteLoading}
+              title="Downvote comment"
             >
-              Delete
+              ▼
             </button>
           </div>
-        )}
+          {isOwner && !isEditing && (
+            <div className="comment-actions">
+              <button
+                className="edit-btn"
+                onClick={() => setIsEditing(true)}
+                title="Edit comment"
+              >
+                Edit
+              </button>
+              <button
+                className="delete-btn"
+                onClick={handleDelete}
+                disabled={submitting}
+                title="Delete comment"
+              >
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {error && <div className="error-message">{error}</div>}
+      {voteError && <div className="vote-error">{voteError}</div>}
 
       {isEditing ? (
         <div className="comment-edit">

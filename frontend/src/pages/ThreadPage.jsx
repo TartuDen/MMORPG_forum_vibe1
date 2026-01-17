@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { threadsAPI, commentsAPI } from '../services/api';
+import { io } from 'socket.io-client';
+import { authAPI, threadsAPI, commentsAPI, reputationAPI } from '../services/api';
 import { useAuth } from '../services/authContext';
 import Comment from '../components/Comment';
 import '../styles/thread.css';
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_IO_URL || 'http://localhost:5000';
 
 export default function ThreadPage() {
   const { forumId, threadId } = useParams();
@@ -16,6 +19,75 @@ export default function ThreadPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [voteError, setVoteError] = useState('');
+  const [voteLoading, setVoteLoading] = useState(false);
+
+  const socket = useMemo(() => {
+    return io(SOCKET_URL, { withCredentials: true, autoConnect: false });
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let mounted = true;
+
+    const connectSocket = async () => {
+      try {
+        const tokenResponse = await authAPI.getSocketToken();
+        const token = tokenResponse.data?.data?.token;
+        if (!mounted) return;
+        if (token) {
+          socket.auth = { token };
+          socket.connect();
+        }
+      } catch (err) {
+        // Ignore socket auth errors; fallback to non-realtime updates.
+      }
+    };
+
+    connectSocket();
+
+    return () => {
+      mounted = false;
+      socket.disconnect();
+    };
+  }, [socket, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const handleThreadVote = (payload) => {
+      const threadIdValue = Number.parseInt(threadId, 10);
+      if (!payload || payload.thread_id !== threadIdValue) return;
+      setThread((prev) => (prev ? { ...prev, vote_score: payload.score } : prev));
+    };
+
+    const handleCommentVote = (payload) => {
+      const threadIdValue = Number.parseInt(threadId, 10);
+      if (!payload || payload.thread_id !== threadIdValue) return;
+      setComments((prev) =>
+        prev.map((comment) =>
+          comment.id === payload.comment_id
+            ? { ...comment, vote_score: payload.score }
+            : comment
+        )
+      );
+    };
+
+    const handleConnect = () => {
+      socket.emit('thread:join', threadId);
+    };
+
+    socket.on('connect', handleConnect);
+    socket.on('reputation:thread_vote', handleThreadVote);
+    socket.on('reputation:comment_vote', handleCommentVote);
+
+    return () => {
+      socket.emit('thread:leave', threadId);
+      socket.off('connect', handleConnect);
+      socket.off('reputation:thread_vote', handleThreadVote);
+      socket.off('reputation:comment_vote', handleCommentVote);
+    };
+  }, [socket, threadId, isAuthenticated]);
 
   useEffect(() => {
     const fetchThread = async () => {
@@ -81,6 +153,39 @@ export default function ThreadPage() {
 
   const isThreadOwner = user && user.id === thread.user_id;
   const isAdmin = user && user.role === 'admin';
+  const viewerVote = thread.viewer_vote === null || thread.viewer_vote === undefined
+    ? null
+    : Number(thread.viewer_vote);
+
+  const handleThreadVote = async (value) => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    if (isThreadOwner) {
+      setVoteError('You cannot vote on your own thread.');
+      return;
+    }
+
+    setVoteError('');
+    setVoteLoading(true);
+    try {
+      const nextValue = viewerVote === value
+        ? 0
+        : (viewerVote === null ? value : 0);
+      const response = await reputationAPI.voteThread(thread.id, nextValue);
+      setThread(prev => ({
+        ...prev,
+        vote_score: response.data.data.score,
+        viewer_vote: response.data.data.user_vote
+      }));
+    } catch (err) {
+      setVoteError(err.response?.data?.error || 'Failed to record vote');
+    } finally {
+      setVoteLoading(false);
+    }
+  };
 
   return (
     <div className="container">
@@ -90,6 +195,27 @@ export default function ThreadPage() {
 
       <div className="thread-detail">
         <div className="thread-header">
+          <div className="thread-vote">
+            <button
+              type="button"
+              className={`vote-btn up ${viewerVote === 1 ? 'active' : ''}`}
+              onClick={() => handleThreadVote(1)}
+              disabled={voteLoading}
+              title="Upvote thread"
+            >
+              ▲
+            </button>
+            <span className="vote-score">{thread.vote_score ?? 0}</span>
+            <button
+              type="button"
+              className={`vote-btn down ${viewerVote === -1 ? 'active' : ''}`}
+              onClick={() => handleThreadVote(-1)}
+              disabled={voteLoading}
+              title="Downvote thread"
+            >
+              ▼
+            </button>
+          </div>
           <h2>{thread.title}</h2>
           {(isThreadOwner || isAdmin) && (
             <button className="delete-btn" onClick={handleDeleteThread}>
@@ -97,6 +223,8 @@ export default function ThreadPage() {
             </button>
           )}
         </div>
+
+        {voteError && <div className="error-message">{voteError}</div>}
 
         <div className="thread-meta">
           <span className="thread-author-meta">

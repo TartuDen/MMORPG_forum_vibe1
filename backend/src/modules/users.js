@@ -50,7 +50,7 @@ export const loginUser = async (identifier, password) => {
   // Find user by email or username
   const result = await pool.query(
     `SELECT id, username, email, password_hash, role, is_banned, avatar_url,
-            failed_login_attempts, locked_until
+            hide_reputation, failed_login_attempts, locked_until
      FROM users
      WHERE email = $1 OR username = $1`,
     [identifier]
@@ -108,7 +108,10 @@ export const loginUser = async (identifier, password) => {
 
 export const getUserById = async (userId) => {
   const result = await pool.query(
-    'SELECT id, username, email, role, profile_picture_url, avatar_url, bio, total_posts, created_at, updated_at FROM users WHERE id = $1',
+    `SELECT id, username, email, role, profile_picture_url, avatar_url, bio,
+            total_posts, hide_reputation, created_at, updated_at
+     FROM users
+     WHERE id = $1`,
     [userId]
   );
 
@@ -116,11 +119,13 @@ export const getUserById = async (userId) => {
     throw { status: 404, message: 'User not found', code: 'USER_NOT_FOUND' };
   }
 
-  return result.rows[0];
+  const user = result.rows[0];
+  const reputation = await getUserReputation(userId, user.role);
+  return { ...user, reputation };
 };
 
 export const updateUser = async (userId, updates) => {
-  const allowedFields = ['username', 'profile_picture_url', 'bio', 'avatar_url'];
+  const allowedFields = ['username', 'profile_picture_url', 'bio', 'avatar_url', 'hide_reputation'];
   const updates_obj = {};
   const updateParams = [];
   let paramCount = 1;
@@ -143,7 +148,7 @@ export const updateUser = async (userId, updates) => {
 
   updateParams.push(`updated_at = CURRENT_TIMESTAMP`);
 
-  const query = `UPDATE users SET ${updateParams.join(', ')} WHERE id = $${paramCount} RETURNING id, username, email, role, profile_picture_url, avatar_url, bio, total_posts, created_at, updated_at`;
+  const query = `UPDATE users SET ${updateParams.join(', ')} WHERE id = $${paramCount} RETURNING id, username, email, role, profile_picture_url, avatar_url, bio, total_posts, hide_reputation, created_at, updated_at`;
   const values = [...Object.values(updates_obj), userId];
 
   const result = await pool.query(query, values);
@@ -152,8 +157,36 @@ export const updateUser = async (userId, updates) => {
     throw { status: 404, message: 'User not found', code: 'USER_NOT_FOUND' };
   }
 
-  return result.rows[0];
+  const user = result.rows[0];
+  const reputation = await getUserReputation(userId, user.role);
+  return { ...user, reputation };
 };
+
+export async function getUserReputation(userId, role = null) {
+  if (role === 'admin') {
+    return null;
+  }
+
+  const threadScoreResult = await pool.query(
+    `SELECT COALESCE(SUM(tv.value), 0) AS score
+     FROM thread_votes tv
+     JOIN threads t ON tv.thread_id = t.id
+     WHERE t.user_id = $1`,
+    [userId]
+  );
+
+  const commentScoreResult = await pool.query(
+    `SELECT COALESCE(SUM(cv.value), 0) AS score
+     FROM comment_votes cv
+     JOIN comments c ON cv.comment_id = c.id
+     WHERE c.user_id = $1 AND c.is_deleted = false`,
+    [userId]
+  );
+
+  const threadScore = Number(threadScoreResult.rows[0].score) || 0;
+  const commentScore = Number(commentScoreResult.rows[0].score) || 0;
+  return threadScore + commentScore;
+}
 
 export const updateUserRole = async (targetUserId, newRole, moderatorId) => {
   const validRoles = ['admin', 'moderator', 'user'];

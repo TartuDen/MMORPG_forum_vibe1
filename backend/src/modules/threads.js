@@ -1,6 +1,6 @@
 import pool from '../db/connection.js';
 
-export const getAllThreads = async (forumId, page = 1, limit = 10) => {
+export const getAllThreads = async (forumId, page = 1, limit = 10, viewerId = null) => {
   const offset = (page - 1) * limit;
 
   const query = `
@@ -12,7 +12,17 @@ export const getAllThreads = async (forumId, page = 1, limit = 10) => {
       u.username as author_username,
       u.role as author_role,
       u.avatar_url as author_avatar_url,
-      u.profile_picture_url as author_picture
+      u.profile_picture_url as author_picture,
+      COALESCE((
+        SELECT SUM(tv.value)
+        FROM thread_votes tv
+        WHERE tv.thread_id = t.id
+      ), 0) as vote_score,
+      (
+        SELECT tv.value
+        FROM thread_votes tv
+        WHERE tv.thread_id = t.id AND tv.user_id = $4
+      ) as viewer_vote
     FROM threads t
     JOIN users u ON t.user_id = u.id
     WHERE t.forum_id = $1
@@ -20,7 +30,7 @@ export const getAllThreads = async (forumId, page = 1, limit = 10) => {
     LIMIT $2 OFFSET $3
   `;
 
-  const result = await pool.query(query, [forumId, limit, offset]);
+  const result = await pool.query(query, [forumId, limit, offset, viewerId]);
 
   // Get total count
   const countResult = await pool.query('SELECT COUNT(*) as total FROM threads WHERE forum_id = $1', [forumId]);
@@ -37,7 +47,7 @@ export const getAllThreads = async (forumId, page = 1, limit = 10) => {
   };
 };
 
-export const getThreadById = async (threadId) => {
+export const getThreadById = async (threadId, viewerId = null) => {
   const result = await pool.query(
     `SELECT 
       t.id, t.forum_id, t.user_id, t.title, t.content, t.image_url,
@@ -45,11 +55,21 @@ export const getThreadById = async (threadId) => {
       t.created_at, t.updated_at,
       u.id as author_id, u.username as author_username, u.role as author_role,
       u.avatar_url as author_avatar_url,
-      u.profile_picture_url as author_picture
+      u.profile_picture_url as author_picture,
+      COALESCE((
+        SELECT SUM(tv.value)
+        FROM thread_votes tv
+        WHERE tv.thread_id = t.id
+      ), 0) as vote_score,
+      (
+        SELECT tv.value
+        FROM thread_votes tv
+        WHERE tv.thread_id = t.id AND tv.user_id = $2
+      ) as viewer_vote
     FROM threads t
     JOIN users u ON t.user_id = u.id
     WHERE t.id = $1`,
-    [threadId]
+    [threadId, viewerId]
   );
 
   if (result.rows.length === 0) {

@@ -168,4 +168,16 @@ export const messagesAPI = {
     apiClient.post(`/messages/conversations/${conversationId}/read`, {})
 };
 
+// Reputation API
+export const reputationAPI = {
+  getSettings: () =>
+    apiClient.get('/reputation/settings'),
+  updateSettings: (payload) =>
+    apiClient.put('/reputation/settings', payload),
+  voteThread: (threadId, value) =>
+    apiClient.post(`/reputation/threads/${threadId}/vote`, { value }),
+  voteComment: (commentId, value) =>
+    apiClient.post(`/reputation/comments/${commentId}/vote`, { value })
+};
+
 export default apiClient;

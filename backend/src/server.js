@@ -68,6 +68,20 @@ io.use((socket, next) => {
 
 io.on('connection', (socket) => {
   socket.join(`user:${socket.userId}`);
+
+  socket.on('thread:join', (threadId) => {
+    const threadIdValue = Number.parseInt(threadId, 10);
+    if (!Number.isNaN(threadIdValue)) {
+      socket.join(`thread:${threadIdValue}`);
+    }
+  });
+
+  socket.on('thread:leave', (threadId) => {
+    const threadIdValue = Number.parseInt(threadId, 10);
+    if (!Number.isNaN(threadIdValue)) {
+      socket.leave(`thread:${threadIdValue}`);
+    }
+  });
 });
 
 app.set('io', io);

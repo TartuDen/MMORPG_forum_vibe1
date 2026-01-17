@@ -54,6 +54,7 @@ export const initializeDatabase = async () => {
         banned_at TIMESTAMP,
         banned_reason TEXT,
         avatar_url TEXT,
+        hide_reputation BOOLEAN DEFAULT false,
         profile_picture_url VARCHAR(500),
         bio TEXT,
         total_posts INTEGER DEFAULT 0,
@@ -69,6 +70,7 @@ export const initializeDatabase = async () => {
         ADD COLUMN IF NOT EXISTS banned_at TIMESTAMP,
         ADD COLUMN IF NOT EXISTS banned_reason TEXT,
         ADD COLUMN IF NOT EXISTS avatar_url TEXT,
+        ADD COLUMN IF NOT EXISTS hide_reputation BOOLEAN DEFAULT false,
         ADD COLUMN IF NOT EXISTS failed_login_attempts INTEGER DEFAULT 0,
         ADD COLUMN IF NOT EXISTS locked_until TIMESTAMP;
     `);
@@ -138,6 +140,42 @@ export const initializeDatabase = async () => {
         is_deleted BOOLEAN DEFAULT false,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Reputation settings (single row)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS app_settings (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        min_account_age_days INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Thread votes
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS thread_votes (
+        id SERIAL PRIMARY KEY,
+        thread_id INTEGER NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        value SMALLINT NOT NULL CHECK (value IN (-1, 1)),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (thread_id, user_id)
+      );
+    `);
+
+    // Comment votes
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS comment_votes (
+        id SERIAL PRIMARY KEY,
+        comment_id INTEGER NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        value SMALLINT NOT NULL CHECK (value IN (-1, 1)),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (comment_id, user_id)
       );
     `);
 
@@ -211,12 +249,22 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_comments_thread_id ON comments(thread_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_thread_votes_thread_id ON thread_votes(thread_id);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_thread_votes_user_id ON thread_votes(user_id);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_comment_votes_comment_id ON comment_votes(comment_id);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_comment_votes_user_id ON comment_votes(user_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_moderation_log_created_at ON moderation_log(created_at);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_moderation_log_moderator ON moderation_log(moderator_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_conversation_participants_user_id ON conversation_participants(user_id);`);
+
+    await pool.query(`
+      INSERT INTO app_settings (id, min_account_age_days)
+      VALUES (1, 0)
+      ON CONFLICT (id) DO NOTHING
+    `);
 
     // Seed default games if none exist
     const gameCount = await pool.query('SELECT COUNT(*) as total FROM games');

@@ -164,6 +164,13 @@
   font-size: 0.9rem;
 }
 
+.thread-score {
+  text-align: center;
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
 .thread-date {
   color: #999;
   font-size: 0.9rem;
