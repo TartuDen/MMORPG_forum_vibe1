@@ -129,12 +129,33 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  overflow: hidden;
 }
 
 .game-card:hover {
   transform: translateY(-2px);
   border-color: var(--color-secondary);
   box-shadow: 0 10px 20px rgba(236, 72, 153, 0.15);
+}
+
+.game-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.92), rgba(255, 255, 255, 0.85));
+  transition: opacity 0.2s ease;
+}
+
+.game-card:hover::before {
+  opacity: 0.8;
+}
+
+.game-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .game-card-header h4 {

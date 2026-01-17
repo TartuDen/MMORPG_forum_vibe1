@@ -91,6 +91,7 @@ export default function HomePage() {
               <div
                 key={game.id}
                 className="game-card"
+                style={game.icon_url ? { backgroundImage: `url(${game.icon_url})` } : undefined}
                 onClick={() => {
                   if (forum) {
                     navigate(`/forums/${forum.id}`);

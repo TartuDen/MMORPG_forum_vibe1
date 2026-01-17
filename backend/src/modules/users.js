@@ -1,6 +1,6 @@
 import pool from '../db/connection.js';
 import { hashPassword, comparePassword } from '../utils/password.js';
-import { validateEmail, validateUsername, validatePassword, sanitizeUser } from '../utils/validators.js';
+import { validateEmail, validateUsername, validatePassword, sanitizeUser, parseImageDataUrl } from '../utils/validators.js';
 
 export const registerUser = async (username, email, password) => {
   // Validate inputs
@@ -40,7 +40,7 @@ export const loginUser = async (identifier, password) => {
   const supportEmail = process.env.SUPPORT_EMAIL || 'support@example.com';
   // Find user by email or username
   const result = await pool.query(
-    `SELECT id, username, email, password_hash, role, is_banned
+    `SELECT id, username, email, password_hash, role, is_banned, avatar_url
      FROM users
      WHERE email = $1 OR username = $1`,
     [identifier]
@@ -70,7 +70,7 @@ export const loginUser = async (identifier, password) => {
 
 export const getUserById = async (userId) => {
   const result = await pool.query(
-    'SELECT id, username, email, role, profile_picture_url, bio, total_posts, created_at, updated_at FROM users WHERE id = $1',
+    'SELECT id, username, email, role, profile_picture_url, avatar_url, bio, total_posts, created_at, updated_at FROM users WHERE id = $1',
     [userId]
   );
 
@@ -82,10 +82,14 @@ export const getUserById = async (userId) => {
 };
 
 export const updateUser = async (userId, updates) => {
-  const allowedFields = ['username', 'profile_picture_url', 'bio'];
+  const allowedFields = ['username', 'profile_picture_url', 'bio', 'avatar_url'];
   const updates_obj = {};
   const updateParams = [];
   let paramCount = 1;
+
+  if (updates.avatar_url) {
+    parseImageDataUrl(updates.avatar_url, 100 * 1024);
+  }
 
   for (const field of allowedFields) {
     if (updates[field] !== undefined) {

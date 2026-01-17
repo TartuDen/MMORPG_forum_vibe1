@@ -53,6 +53,7 @@ export const initializeDatabase = async () => {
         is_banned BOOLEAN DEFAULT false,
         banned_at TIMESTAMP,
         banned_reason TEXT,
+        avatar_url TEXT,
         profile_picture_url VARCHAR(500),
         bio TEXT,
         total_posts INTEGER DEFAULT 0,
@@ -64,7 +65,8 @@ export const initializeDatabase = async () => {
       ALTER TABLE users
         ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false,
         ADD COLUMN IF NOT EXISTS banned_at TIMESTAMP,
-        ADD COLUMN IF NOT EXISTS banned_reason TEXT;
+        ADD COLUMN IF NOT EXISTS banned_reason TEXT,
+        ADD COLUMN IF NOT EXISTS avatar_url TEXT;
     `);
 
     // Games table
@@ -76,12 +78,14 @@ export const initializeDatabase = async () => {
         tags TEXT[] DEFAULT '{}',
         icon_url VARCHAR(500),
         website_url VARCHAR(500),
+        auto_forum_enabled BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
     await pool.query(`
       ALTER TABLE games
-        ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}';
+        ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}',
+        ADD COLUMN IF NOT EXISTS auto_forum_enabled BOOLEAN DEFAULT true;
     `);
 
     // Forums table
@@ -105,6 +109,7 @@ export const initializeDatabase = async () => {
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
         title VARCHAR(500) NOT NULL,
         content TEXT NOT NULL,
+        image_url TEXT,
         view_count INTEGER DEFAULT 0,
         comment_count INTEGER DEFAULT 0,
         is_locked BOOLEAN DEFAULT false,
@@ -112,6 +117,10 @@ export const initializeDatabase = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+    await pool.query(`
+      ALTER TABLE threads
+        ADD COLUMN IF NOT EXISTS image_url TEXT;
     `);
 
     // Comments table
@@ -200,7 +209,7 @@ export const initializeDatabase = async () => {
       SELECT g.id, 'General Discussion', 'General discussion for ' || g.name
       FROM games g
       LEFT JOIN forums f ON f.game_id = g.id
-      WHERE f.id IS NULL AND g.name <> 'Community'
+      WHERE f.id IS NULL AND g.name <> 'Community' AND g.auto_forum_enabled = true
     `);
 
     // Seed default users in non-production environments

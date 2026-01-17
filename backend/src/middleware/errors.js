@@ -23,6 +23,13 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({
+      error: 'Payload too large',
+      code: 'PAYLOAD_TOO_LARGE'
+    });
+  }
+
   // Default error
   res.status(err.status || 500).json({
     error: err.message || 'Internal server error',

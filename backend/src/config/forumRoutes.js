@@ -4,6 +4,7 @@ import { getAllThreads, getThreadById, createThread, updateThread, deleteThread,
 import { getThreadComments, createComment, updateComment, deleteComment } from '../modules/comments.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import pool from '../db/connection.js';
+import { parseImageDataUrl } from '../utils/validators.js';
 
 const router = express.Router();
 
@@ -224,7 +225,7 @@ router.get('/:forumId/threads/:threadId', async (req, res, next) => {
 router.post('/:forumId/threads', authenticate, async (req, res, next) => {
   try {
     const { forumId } = req.params;
-    const { title, content } = req.body;
+    const { title, content, image_url } = req.body;
 
     if (!title || !content) {
       return res.status(400).json({
@@ -236,7 +237,11 @@ router.post('/:forumId/threads', authenticate, async (req, res, next) => {
     // Verify forum exists
     await getForumById(forumId);
 
-    const thread = await createThread(forumId, req.userId, title, content);
+    if (image_url) {
+      parseImageDataUrl(image_url, 300 * 1024);
+    }
+
+    const thread = await createThread(forumId, req.userId, title, content, image_url || null);
 
     res.status(201).json({
       data: thread,

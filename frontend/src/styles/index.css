@@ -35,3 +35,24 @@ body {
   color: #9a3412;
   border: 1px solid #fdba74;
 }
+
+.avatar-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #e5e7eb;
+}
+
+.avatar-fallback {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e2e8f0;
+  color: #1f2937;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
