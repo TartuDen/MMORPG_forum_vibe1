@@ -13,6 +13,7 @@ export default function SearchPage() {
   const [threads, setThreads] = useState([]);
   const [comments, setComments] = useState([]);
   const [users, setUsers] = useState([]);
+  const [forums, setForums] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('threads');
@@ -31,10 +32,12 @@ export default function SearchPage() {
         const threadRes = await axios.get(`${API_BASE_URL}/search/threads?q=${encodeURIComponent(query)}&limit=20`);
         const commentRes = await axios.get(`${API_BASE_URL}/search/comments?q=${encodeURIComponent(query)}&limit=20`);
         const userRes = await axios.get(`${API_BASE_URL}/search/users?q=${encodeURIComponent(query)}&limit=20`);
+        const forumRes = await axios.get(`${API_BASE_URL}/search/forums?q=${encodeURIComponent(query)}&limit=20`);
 
-        setThreads(threadRes.data.data);
-        setComments(commentRes.data.data);
-        setUsers(userRes.data.data);
+        setThreads(threadRes.data.data || []);
+        setComments(commentRes.data.data || []);
+        setUsers(userRes.data.data || []);
+        setForums(forumRes.data.data || []);
       } catch (err) {
         setError('Search failed. Please try again.');
         console.error(err);
@@ -86,6 +89,12 @@ export default function SearchPage() {
               onClick={() => setActiveTab('users')}
             >
               Users ({users.length})
+            </button>
+            <button
+              className={`tab ${activeTab === 'forums' ? 'active' : ''}`}
+              onClick={() => setActiveTab('forums')}
+            >
+              Forums ({forums.length})
             </button>
           </div>
 
@@ -153,6 +162,31 @@ export default function SearchPage() {
                         </div>
                       </div>
                       <span className="user-badge">{user.role}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {activeTab === 'forums' && (
+              <div className="results-list">
+                {forums.length === 0 ? (
+                  <p className="no-results">No forums found</p>
+                ) : (
+                  forums.map((forum) => (
+                    <div
+                      key={forum.id}
+                      className="result-item"
+                      onClick={() => navigate(`/forums/${forum.id}`)}
+                    >
+                      <h4>{forum.name}</h4>
+                      <p>{forum.description || 'No description yet.'}</p>
+                      <div className="result-meta">
+                        <span>Game: {forum.game_name}</span>
+                        {forum.game_tags?.length ? (
+                          <span>Tags: {forum.game_tags.join(', ')}</span>
+                        ) : null}
+                      </div>
                     </div>
                   ))
                 )}

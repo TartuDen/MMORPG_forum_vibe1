@@ -56,7 +56,7 @@ export default function HomePage() {
           <p>Choose a forum to discuss your favorite MMO/RPG games</p>
         </div>
         {isAdmin && (
-          <button className="create-forum-btn" onClick={() => navigate('/create-forum')}>
+          <button className="create-forum-btn" onClick={() => navigate('/create-forum?mode=manage')}>
             Manage Games
           </button>
         )}
