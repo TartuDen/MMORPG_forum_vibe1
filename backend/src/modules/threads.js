@@ -8,6 +8,7 @@ export const getAllThreads = async (forumId, page = 1, limit = 10) => {
       t.id, t.forum_id, t.user_id, t.title, t.content, 
       t.view_count, t.comment_count, t.is_locked, t.is_pinned,
       t.created_at, t.updated_at,
+      u.id as author_id,
       u.username as author_username,
       u.profile_picture_url as author_picture
     FROM threads t
@@ -56,17 +57,28 @@ export const getThreadById = async (threadId) => {
 };
 
 export const createThread = async (forumId, userId, title, content) => {
-  const result = await pool.query(
-    `INSERT INTO threads (forum_id, user_id, title, content) 
-    VALUES ($1, $2, $3, $4) 
-    RETURNING id, forum_id, user_id, title, content, view_count, comment_count, is_locked, is_pinned, created_at, updated_at`,
-    [forumId, userId, title, content]
-  );
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
 
-  // Update user's total_posts
-  await pool.query('UPDATE users SET total_posts = total_posts + 1 WHERE id = $1', [userId]);
+    const result = await client.query(
+      `INSERT INTO threads (forum_id, user_id, title, content) 
+      VALUES ($1, $2, $3, $4) 
+      RETURNING id, forum_id, user_id, title, content, view_count, comment_count, is_locked, is_pinned, created_at, updated_at`,
+      [forumId, userId, title, content]
+    );
 
-  return result.rows[0];
+    // Update user's total_posts
+    await client.query('UPDATE users SET total_posts = total_posts + 1 WHERE id = $1', [userId]);
+
+    await client.query('COMMIT');
+    return result.rows[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 export const updateThread = async (threadId, userId, updates) => {
@@ -108,23 +120,34 @@ export const updateThread = async (threadId, userId, updates) => {
 };
 
 export const deleteThread = async (threadId, userId) => {
-  // Verify ownership
-  const threadResult = await pool.query('SELECT user_id FROM threads WHERE id = $1', [threadId]);
-  if (threadResult.rows.length === 0) {
-    throw { status: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' };
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Verify ownership
+    const threadResult = await client.query('SELECT user_id FROM threads WHERE id = $1', [threadId]);
+    if (threadResult.rows.length === 0) {
+      throw { status: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' };
+    }
+
+    if (threadResult.rows[0].user_id !== userId) {
+      throw { status: 403, message: 'Not authorized to delete this thread', code: 'UNAUTHORIZED' };
+    }
+
+    // Delete thread (cascade deletes comments)
+    await client.query('DELETE FROM threads WHERE id = $1', [threadId]);
+
+    // Decrement user's total_posts
+    await client.query('UPDATE users SET total_posts = GREATEST(0, total_posts - 1) WHERE id = $1', [userId]);
+
+    await client.query('COMMIT');
+    return { id: threadId };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
   }
-
-  if (threadResult.rows[0].user_id !== userId) {
-    throw { status: 403, message: 'Not authorized to delete this thread', code: 'UNAUTHORIZED' };
-  }
-
-  // Delete thread (cascade deletes comments)
-  await pool.query('DELETE FROM threads WHERE id = $1', [threadId]);
-
-  // Decrement user's total_posts
-  await pool.query('UPDATE users SET total_posts = GREATEST(0, total_posts - 1) WHERE id = $1', [userId]);
-
-  return { id: threadId };
 };
 
 export const incrementThreadViews = async (threadId) => {

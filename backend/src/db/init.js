@@ -48,6 +48,9 @@ export const initializeDatabase = async () => {
         email VARCHAR(255) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         role VARCHAR(50) DEFAULT 'user' CHECK (role IN ('admin', 'moderator', 'user')),
+        is_banned BOOLEAN DEFAULT false,
+        banned_at TIMESTAMP,
+        banned_reason TEXT,
         profile_picture_url VARCHAR(500),
         bio TEXT,
         total_posts INTEGER DEFAULT 0,
@@ -86,7 +89,7 @@ export const initializeDatabase = async () => {
       CREATE TABLE IF NOT EXISTS threads (
         id SERIAL PRIMARY KEY,
         forum_id INTEGER NOT NULL REFERENCES forums(id) ON DELETE CASCADE,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
         title VARCHAR(500) NOT NULL,
         content TEXT NOT NULL,
         view_count INTEGER DEFAULT 0,
@@ -103,7 +106,7 @@ export const initializeDatabase = async () => {
       CREATE TABLE IF NOT EXISTS comments (
         id SERIAL PRIMARY KEY,
         thread_id INTEGER NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
         content TEXT NOT NULL,
         is_edited BOOLEAN DEFAULT false,
         is_deleted BOOLEAN DEFAULT false,

@@ -1,9 +1,17 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_here';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your_jwt_refresh_secret_key_here';
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 const JWT_EXPIRE = process.env.JWT_EXPIRE || '1h';
 const JWT_REFRESH_EXPIRE = process.env.JWT_REFRESH_EXPIRE || '7d';
+
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET is required');
+}
+
+if (!JWT_REFRESH_SECRET) {
+  throw new Error('JWT_REFRESH_SECRET is required');
+}
 
 export const generateToken = (userId) => {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRE });

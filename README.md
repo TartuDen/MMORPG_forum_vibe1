@@ -86,6 +86,8 @@ cp .env.example .env
 # PORT=5000
 # NODE_ENV=development
 # JWT_SECRET=your_jwt_secret_here
+# JWT_REFRESH_SECRET=your_jwt_refresh_secret_here
+# SUPPORT_EMAIL=support@example.com
 
 # Start development server
 npm run dev
@@ -123,6 +125,7 @@ Frontend will be available at `http://localhost:5173`
    GRANT ALL PRIVILEGES ON DATABASE mmorpg_forum TO forum_user;
    ```
 3. The backend will automatically initialize the schema on first run
+4. If upgrading an existing database, apply `backend/migrations/001_add_user_ban_and_fk_restrict.sql`
 
 ## 📚 Documentation
 
@@ -155,6 +158,8 @@ The application uses JWT-based authentication:
 ### Users
 - `GET /api/users` - List all users (paginated)
 - `GET /api/users/:id` - Get user profile
+- `POST /api/users/:id/ban` - Ban user (admin only)
+- `POST /api/users/:id/unban` - Unban user (admin only)
 
 ### Forums
 - `GET /api/forums` - Get all forums
