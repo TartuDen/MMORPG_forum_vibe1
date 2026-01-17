@@ -5,6 +5,7 @@ import authRoutes from './config/authRoutes.js';
 import userRoutes from './config/userRoutes.js';
 import forumRoutes from './config/forumRoutes.js';
 import searchRoutes from './config/searchRoutes.js';
+import messageRoutes from './config/messageRoutes.js';
 import { errorHandler, notFound } from './middleware/errors.js';
 import { initializeDatabase } from './db/init.js';
 import { generalLimiter } from './middleware/rateLimit.js';
@@ -160,6 +161,9 @@ app.use('/api/forums', forumRoutes);
 
 // Search routes
 app.use('/api/search', searchRoutes);
+
+// Messaging routes
+app.use('/api/messages', messageRoutes);
 
 // 404 handler
 app.use(notFound);

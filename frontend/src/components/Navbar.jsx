@@ -49,6 +49,12 @@ export default function Navbar() {
               >
                 Welcome, {user?.username}!
               </span>
+              <button
+                onClick={() => navigate('/messages')}
+                className="navbar-btn login-btn"
+              >
+                Messages
+              </button>
               <button onClick={handleLogout} className="navbar-btn logout-btn">
                 Logout
               </button>

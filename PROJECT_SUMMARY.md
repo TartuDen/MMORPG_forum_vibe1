@@ -13,7 +13,7 @@ A full-stack MMO/RPG Game Community Forum application with user authentication, 
 - **Backend:** Node.js 18+, Express.js, PostgreSQL 14+
 - **Frontend:** React 18+, Vite, Axios, React Router, Context API
 - **Authentication:** JWT access tokens + refresh token rotation (HttpOnly cookies + CSRF), bcryptjs password hashing
-- **Database:** PostgreSQL with 7 tables (users, games, forums, threads, comments, moderation_log, refresh_tokens)
+- **Database:** PostgreSQL with 10 tables (users, games, forums, threads, comments, moderation_log, refresh_tokens, conversations, conversation_participants, messages)
 
 ---
 
@@ -28,6 +28,8 @@ A full-stack MMO/RPG Game Community Forum application with user authentication, 
 - ✅ Protected routes (ProtectedRoute wrapper)
 - ✅ User profiles with stats (total posts, threads, reputation, member since)
 - ✅ Clickable usernames throughout the app (forums, threads, comments)
+- ✅ Avatar upload (stored in DB as data URL, max 100KB)
+- ✅ Security hardening (headers, origin checks, rate limits, account lockout, JWT issuer/audience)
 
 ### Forum Management
 - ✅ Browse all forums
@@ -56,6 +58,13 @@ A full-stack MMO/RPG Game Community Forum application with user authentication, 
 - ✅ Character counters on forms
 - ✅ Loading states and error handling
 - ✅ Navbar with logo, search, auth buttons
+- ✅ Direct messages UI with realtime updates
+
+### Messaging
+- ✅ Direct messages (1:1) with conversation list
+- ✅ Message search by username and "Message" from user profile
+- ✅ Realtime delivery via Socket.io (with token auth)
+- ✅ Unread counts and read receipts (per-conversation)
 
 ---
 
@@ -138,8 +147,8 @@ MMORPG_forum_vibe1/
 
 ### users
 ```sql
-id, username, email, password_hash, role, profile_picture_url, bio, 
-total_posts, created_at, updated_at
+id, username, email, password_hash, role, profile_picture_url, avatar_url, bio,
+total_posts, failed_login_attempts, locked_until, created_at, updated_at
 ```
 
 ### games
@@ -173,6 +182,21 @@ id, moderator_id (FK), target_user_id (FK), action, reason, created_at
 id, user_id (FK), token_hash, expires_at, revoked_at, replaced_by, created_at, created_by_ip, revoked_by_ip
 ```
 
+### conversations
+```sql
+id, created_at, updated_at
+```
+
+### conversation_participants
+```sql
+conversation_id (FK), user_id (FK), last_read_at
+```
+
+### messages
+```sql
+id, conversation_id (FK), sender_id (FK), body, created_at
+```
+
 ---
 
 ## 🔑 API ENDPOINTS
@@ -183,6 +207,7 @@ id, user_id (FK), token_hash, expires_at, revoked_at, replaced_by, created_at, c
 - `POST /refresh` - Refresh access token (cookie-based)
 - `GET /me` - Get current user
 - `PUT /me` - Update profile
+- `GET /socket-token` - Issue socket token for realtime
 - `POST /logout` - Clear auth cookies
 
 ### Users (`/api/users`)
@@ -206,6 +231,13 @@ id, user_id (FK), token_hash, expires_at, revoked_at, replaced_by, created_at, c
 - `GET /threads?q=query` - Search threads (full-text)
 - `GET /comments?q=query` - Search comments
 - `GET /users?q=query` - Search users
+
+### Messages (`/api/messages`)
+- `GET /conversations` - List conversations
+- `POST /conversations` - Create or fetch conversation
+- `GET /conversations/:id/messages` - List messages
+- `POST /conversations/:id/messages` - Send message
+- `POST /conversations/:id/read` - Mark conversation as read
 
 ---
 
@@ -331,11 +363,11 @@ id, user_id (FK), token_hash, expires_at, revoked_at, replaced_by, created_at, c
 
 1. **Reputation System** - Upvote/downvote threads & comments
 2. **Categories/Tags** - Organize forums with categories
-3. **Real-time Notifications** - Socket.io integration
+3. **Real-time Notifications** - Forum reply notifications
 4. **Admin Dashboard** - Moderation tools
 5. **User Roles** - Admin, moderator, member permissions
 6. **Rich Text Editor** - WYSIWYG for threads/comments
-7. **Private Messages** - Direct user messaging
+7. **Message Attachments** - File/image sharing in DMs
 8. **Mobile PWA** - Progressive Web App
 
 ---
@@ -397,8 +429,8 @@ git pull origin main
 
 ---
 
-**Last Updated:** January 16, 2026  
-**Status:** MVP Complete - Forum creation, threads, comments, user profiles, search functional
+**Last Updated:** January 17, 2026  
+**Status:** MVP Complete - Forums, threads, comments, profiles, avatars, search, direct messages
 
 
 

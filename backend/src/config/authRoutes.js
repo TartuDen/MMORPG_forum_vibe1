@@ -285,6 +285,19 @@ router.get('/me', authenticate, async (req, res, next) => {
   }
 });
 
+// Socket token for realtime connections
+router.get('/socket-token', authenticate, async (req, res, next) => {
+  try {
+    const token = generateToken(req.userId);
+    res.status(200).json({
+      data: { token },
+      message: 'Socket token issued'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Update user profile
 router.put('/me', authenticate, authLimiter, async (req, res, next) => {
   try {
