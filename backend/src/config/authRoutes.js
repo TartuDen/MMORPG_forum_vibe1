@@ -9,12 +9,19 @@ const router = express.Router();
 // Register
 router.post('/register', async (req, res, next) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, confirmPassword } = req.body;
 
     if (!username || !email || !password) {
       return res.status(400).json({
         error: 'Missing required fields',
         code: 'MISSING_FIELDS'
+      });
+    }
+
+    if (confirmPassword !== undefined && confirmPassword !== password) {
+      return res.status(400).json({
+        error: 'Passwords do not match',
+        code: 'PASSWORD_MISMATCH'
       });
     }
 

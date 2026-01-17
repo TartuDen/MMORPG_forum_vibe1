@@ -1,6 +1,7 @@
 import pool from '../db/connection.js';
 import pg from 'pg';
 import dotenv from 'dotenv';
+import { hashPassword } from '../utils/password.js';
 
 dotenv.config();
 
@@ -8,11 +9,12 @@ const { Pool } = pg;
 
 // Create database if it doesn't exist
 const createDatabaseIfNotExists = async () => {
+  const password = process.env.DB_PASSWORD;
   const adminPool = new Pool({
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,
     user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || '',
+    password: password === undefined ? '' : String(password),
     database: 'postgres' // Connect to default postgres database
   });
 
@@ -57,6 +59,12 @@ export const initializeDatabase = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+    await pool.query(`
+      ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false,
+        ADD COLUMN IF NOT EXISTS banned_at TIMESTAMP,
+        ADD COLUMN IF NOT EXISTS banned_reason TEXT;
     `);
 
     // Games table
@@ -142,6 +150,50 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_moderation_log_created_at ON moderation_log(created_at);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_moderation_log_moderator ON moderation_log(moderator_id);`);
+
+    // Seed default games if none exist
+    const gameCount = await pool.query('SELECT COUNT(*) as total FROM games');
+    if (parseInt(gameCount.rows[0].total, 10) === 0) {
+      await pool.query(`
+        INSERT INTO games (name, description, icon_url, website_url)
+        VALUES
+          ('World of Warcraft', 'Epic MMORPG with raids, dungeons, and PvP', '', 'https://worldofwarcraft.com'),
+          ('Final Fantasy XIV', 'Story-driven MMORPG with deep crafting', '', 'https://www.finalfantasyxiv.com'),
+          ('Guild Wars 2', 'Action MMORPG with dynamic events', '', 'https://www.guildwars2.com'),
+          ('Elder Scrolls Online', 'Tamriel-wide MMORPG adventure', '', 'https://www.elderscrollsonline.com'),
+          ('Black Desert Online', 'Sandbox MMORPG with lifeskills', '', 'https://www.naeu.playblackdesert.com'),
+          ('Lost Ark', 'Isometric MMORPG with raids and islands', '', 'https://www.playlostark.com'),
+          ('RuneScape', 'Classic MMORPG with open progression', '', 'https://www.runescape.com'),
+          ('Old School RuneScape', 'Community-driven classic MMO', '', 'https://oldschool.runescape.com'),
+          ('Albion Online', 'Sandbox PvP-focused MMORPG', '', 'https://albiononline.com'),
+          ('New World', 'MMORPG set on the island of Aeternum', '', 'https://www.newworld.com'),
+          ('Star Wars: The Old Republic', 'Story MMO in the Star Wars universe', '', 'https://www.swtor.com'),
+          ('EVE Online', 'Space MMO with player-driven economy', '', 'https://www.eveonline.com'),
+          ('The Lord of the Rings Online', 'MMORPG set in Middle-earth', '', 'https://www.lotro.com'),
+          ('Phantasy Star Online 2', 'Sci-fi action MMORPG', '', 'https://pso2.com'),
+          ('Aion', 'Fantasy MMORPG with aerial combat', '', 'https://www.aiononline.com')
+        ON CONFLICT (name) DO NOTHING
+      `);
+    }
+
+    // Seed default users in non-production environments
+    if (process.env.NODE_ENV !== 'production') {
+      const passwordHash = await hashPassword('Plot123123');
+
+      await pool.query(
+        `INSERT INTO users (username, email, password_hash, role)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (username) DO NOTHING`,
+        ['pomogA', 'pomoga@example.com', passwordHash, 'admin']
+      );
+
+      await pool.query(
+        `INSERT INTO users (username, email, password_hash, role)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (username) DO NOTHING`,
+        ['pomogB', 'pomogb@example.com', passwordHash, 'user']
+      );
+    }
 
     console.log('Database schema initialized successfully!');
   } catch (error) {

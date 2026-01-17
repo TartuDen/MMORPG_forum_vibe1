@@ -37,6 +37,20 @@ export const createForum = async (gameId, name, description) => {
   return result.rows[0];
 };
 
+export const createGame = async (name, description, iconUrl = null, websiteUrl = null) => {
+  const existing = await pool.query('SELECT id FROM games WHERE name = $1', [name]);
+  if (existing.rows.length > 0) {
+    throw { status: 400, message: 'Game already exists', code: 'GAME_EXISTS' };
+  }
+
+  const result = await pool.query(
+    'INSERT INTO games (name, description, icon_url, website_url) VALUES ($1, $2, $3, $4) RETURNING id, name, description, icon_url, website_url, created_at',
+    [name, description, iconUrl, websiteUrl]
+  );
+
+  return result.rows[0];
+};
+
 export const updateForum = async (forumId, updates) => {
   const allowedFields = ['name', 'description', 'display_order', 'is_locked'];
   const updateParams = [];

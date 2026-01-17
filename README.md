@@ -164,6 +164,8 @@ The application uses JWT-based authentication:
 ### Forums
 - `GET /api/forums` - Get all forums
 - `GET /api/forums/:forumId` - Get forum with threads
+- `POST /api/forums/create` - Create forum (admin only)
+- `POST /api/forums/games` - Create game (admin only)
 
 ### Threads
 - `GET /api/forums/:forumId/threads/:threadId` - Get thread with comments
