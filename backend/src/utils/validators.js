@@ -19,3 +19,29 @@ export const sanitizeUser = (user) => {
   const { password_hash, ...sanitized } = user;
   return sanitized;
 };
+
+export const parseImageDataUrl = (dataUrl, maxBytes) => {
+  if (!dataUrl) return { dataUrl: null, mime: null };
+  if (typeof dataUrl !== 'string') {
+    throw { status: 400, message: 'Invalid image data', code: 'INVALID_IMAGE' };
+  }
+
+  const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.*)$/);
+  if (!match) {
+    throw { status: 400, message: 'Invalid image data', code: 'INVALID_IMAGE' };
+  }
+
+  const base64 = match[2];
+  let buffer;
+  try {
+    buffer = Buffer.from(base64, 'base64');
+  } catch (err) {
+    throw { status: 400, message: 'Invalid image data', code: 'INVALID_IMAGE' };
+  }
+
+  if (buffer.length > maxBytes) {
+    throw { status: 400, message: 'Image too large', code: 'IMAGE_TOO_LARGE' };
+  }
+
+  return { dataUrl, mime: match[1] };
+};

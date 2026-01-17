@@ -5,12 +5,13 @@ export const getAllThreads = async (forumId, page = 1, limit = 10) => {
 
   const query = `
     SELECT 
-      t.id, t.forum_id, t.user_id, t.title, t.content, 
+      t.id, t.forum_id, t.user_id, t.title, t.content, t.image_url,
       t.view_count, t.comment_count, t.is_locked, t.is_pinned,
       t.created_at, t.updated_at,
       u.id as author_id,
       u.username as author_username,
       u.role as author_role,
+      u.avatar_url as author_avatar_url,
       u.profile_picture_url as author_picture
     FROM threads t
     JOIN users u ON t.user_id = u.id
@@ -39,10 +40,11 @@ export const getAllThreads = async (forumId, page = 1, limit = 10) => {
 export const getThreadById = async (threadId) => {
   const result = await pool.query(
     `SELECT 
-      t.id, t.forum_id, t.user_id, t.title, t.content, 
+      t.id, t.forum_id, t.user_id, t.title, t.content, t.image_url,
       t.view_count, t.comment_count, t.is_locked, t.is_pinned,
       t.created_at, t.updated_at,
       u.id as author_id, u.username as author_username, u.role as author_role,
+      u.avatar_url as author_avatar_url,
       u.profile_picture_url as author_picture
     FROM threads t
     JOIN users u ON t.user_id = u.id
@@ -57,16 +59,16 @@ export const getThreadById = async (threadId) => {
   return result.rows[0];
 };
 
-export const createThread = async (forumId, userId, title, content) => {
+export const createThread = async (forumId, userId, title, content, imageUrl = null) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
     const result = await client.query(
-      `INSERT INTO threads (forum_id, user_id, title, content) 
-      VALUES ($1, $2, $3, $4) 
-      RETURNING id, forum_id, user_id, title, content, view_count, comment_count, is_locked, is_pinned, created_at, updated_at`,
-      [forumId, userId, title, content]
+      `INSERT INTO threads (forum_id, user_id, title, content, image_url) 
+      VALUES ($1, $2, $3, $4, $5) 
+      RETURNING id, forum_id, user_id, title, content, image_url, view_count, comment_count, is_locked, is_pinned, created_at, updated_at`,
+      [forumId, userId, title, content, imageUrl]
     );
 
     // Update user's total_posts

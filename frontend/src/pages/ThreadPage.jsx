@@ -48,7 +48,6 @@ export default function ThreadPage() {
     try {
       await commentsAPI.createComment(forumId, threadId, newComment);
       setNewComment('');
-      // Refresh comments
       const response = await threadsAPI.getThread(
         forumId,
         threadId,
@@ -86,7 +85,7 @@ export default function ThreadPage() {
   return (
     <div className="container">
       <button className="back-btn" onClick={() => navigate(`/forums/${forumId}`)}>
-        ← Back to Forum
+        Back to Forum
       </button>
 
       <div className="thread-detail">
@@ -100,16 +99,33 @@ export default function ThreadPage() {
         </div>
 
         <div className="thread-meta">
-          <span>By <strong 
-            className="username-link"
-            onClick={() => navigate(`/user/${thread.user_id}`)}
-          >{thread.author_username}</strong>
-          {thread.author_role === 'admin' && (
-            <span className="role-badge admin">Admin</span>
-          )}</span>
+          <span className="thread-author-meta">
+            {thread.author_avatar_url ? (
+              <img className="avatar-thumb" src={thread.author_avatar_url} alt={thread.author_username} />
+            ) : (
+              <span className="avatar-fallback">
+                {thread.author_username?.charAt(0)?.toUpperCase()}
+              </span>
+            )}
+            <strong
+              className="username-link"
+              onClick={() => navigate(`/user/${thread.user_id}`)}
+            >
+              {thread.author_username}
+            </strong>
+            {thread.author_role === 'admin' && (
+              <span className="role-badge admin">Admin</span>
+            )}
+          </span>
           <span>Posted {new Date(thread.created_at).toLocaleDateString()}</span>
-          <span>👁 {thread.view_count} views</span>
+          <span>{thread.view_count} views</span>
         </div>
+
+        {thread.image_url && (
+          <div className="thread-image">
+            <img src={thread.image_url} alt="Thread attachment" />
+          </div>
+        )}
 
         <div className="thread-content">
           {thread.content}
@@ -150,7 +166,6 @@ export default function ThreadPage() {
                 threadId={threadId}
                 isOwner={user && user.id === comment.user_id}
                 onUpdate={() => {
-                  // Refresh comments
                   const response = threadsAPI.getThread(
                     forumId,
                     threadId,

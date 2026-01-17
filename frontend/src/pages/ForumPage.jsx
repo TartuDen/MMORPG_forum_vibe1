@@ -56,12 +56,25 @@ export default function ForumPage() {
     <div className="container">
       <div className="forum-header">
         <button className="back-btn" onClick={() => navigate('/')}>Back to Forums</button>
-        <h2>{forum.name}</h2>
-        <p>{forum.description}</p>
+        <div
+          className="forum-hero"
+          style={forum.game_icon_url ? { backgroundImage: `url(${forum.game_icon_url})` } : undefined}
+        >
+          <div className="forum-hero-content">
+            <span className="forum-game-name">{forum.game_name || 'Game Forum'}</span>
+            <h2>{forum.name}</h2>
+            <p>{forum.description}</p>
+          </div>
+        </div>
         {isAdmin && (
-          <button className="delete-btn" onClick={handleDeleteForum}>
-            Delete Forum
-          </button>
+          <div className="forum-admin-actions">
+            <button className="manage-btn" onClick={() => navigate(`/create-forum?gameId=${forum.game_id}`)}>
+              Manage Forum
+            </button>
+            <button className="delete-btn" onClick={handleDeleteForum}>
+              Delete Forum
+            </button>
+          </div>
         )}
       </div>
 
@@ -102,14 +115,23 @@ export default function ForumPage() {
                     {thread.title}
                   </td>
                   <td className="thread-author">
-                    <span
-                      className="username-link"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/user/${thread.author_id}`);
-                      }}
-                    >
-                      {thread.author_username}
+                    <span className="thread-author-meta">
+                      {thread.author_avatar_url ? (
+                        <img className="avatar-thumb" src={thread.author_avatar_url} alt={thread.author_username} />
+                      ) : (
+                        <span className="avatar-fallback">
+                          {thread.author_username?.charAt(0)?.toUpperCase()}
+                        </span>
+                      )}
+                      <span
+                        className="username-link"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/user/${thread.author_id}`);
+                        }}
+                      >
+                        {thread.author_username}
+                      </span>
                     </span>
                     {thread.author_role === 'admin' && (
                       <span className="role-badge admin">Admin</span>

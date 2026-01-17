@@ -94,8 +94,8 @@ export const forumsAPI = {
 export const threadsAPI = {
   getThread: (forumId, threadId, page = 1, limit = 10) =>
     apiClient.get(`/forums/${forumId}/threads/${threadId}?page=${page}&limit=${limit}`),
-  createThread: (forumId, title, content) =>
-    apiClient.post(`/forums/${forumId}/threads`, { title, content }),
+  createThread: (forumId, title, content, image_url = null) =>
+    apiClient.post(`/forums/${forumId}/threads`, { title, content, image_url }),
   updateThread: (forumId, threadId, updates) =>
     apiClient.put(`/forums/${forumId}/threads/${threadId}`, updates),
   deleteThread: (forumId, threadId) =>

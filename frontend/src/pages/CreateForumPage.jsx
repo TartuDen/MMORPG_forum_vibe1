@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { forumsAPI } from '../services/api';
 import { useAuth } from '../services/authContext';
 import '../styles/create-forum.css';
 
 export default function CreateForumPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -40,6 +41,24 @@ export default function CreateForumPage() {
   useEffect(() => {
     fetchGames();
   }, []);
+
+  useEffect(() => {
+    const gameIdParam = searchParams.get('gameId');
+    if (!gameIdParam) return;
+    const gameIdValue = parseInt(gameIdParam, 10);
+    if (Number.isNaN(gameIdValue)) return;
+    const game = games.find((item) => item.id === gameIdValue);
+    if (!game) return;
+
+    setGameEdit({
+      id: game.id,
+      name: game.name || '',
+      description: game.description || '',
+      tags: Array.isArray(game.tags) ? game.tags.join(', ') : '',
+      icon_url: game.icon_url || '',
+      website_url: game.website_url || ''
+    });
+  }, [games, searchParams]);
 
   const handleGameInputChange = (e) => {
     const { name, value } = e.target;

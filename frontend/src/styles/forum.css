@@ -4,6 +4,39 @@
   border-bottom: 2px solid var(--color-border);
 }
 
+.forum-hero {
+  border-radius: 12px;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #111827, #1f2937);
+  color: #f9fafb;
+  margin-top: 1rem;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.forum-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(17, 24, 39, 0.6), rgba(15, 23, 42, 0.5));
+}
+
+.forum-hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.forum-game-name {
+  display: inline-block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #e2e8f0;
+  margin-bottom: 0.5rem;
+}
+
 .forum-header h2 {
   color: var(--color-dark);
   margin: 1rem 0 0.5rem 0;
@@ -95,6 +128,33 @@
 
 .thread-author .role-badge {
   margin-left: 0.5rem;
+}
+
+.thread-author-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.forum-admin-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.manage-btn {
+  padding: 0.5rem 1rem;
+  background-color: #0f172a;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.2s ease;
+}
+
+.manage-btn:hover {
+  background-color: #1f2937;
 }
 
 .thread-replies,

@@ -1,15 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usersAPI } from '../services/api';
+import { useAuth } from '../services/authContext';
 import '../styles/user-profile.css';
 
 export default function UserProfilePage() {
   const { userId } = useParams();
   const navigate = useNavigate();
+  const { user: currentUser, updateProfile } = useAuth();
   const [user, setUser] = useState(null);
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [avatarData, setAvatarData] = useState('');
+  const [avatarError, setAvatarError] = useState('');
+  const [avatarSaving, setAvatarSaving] = useState(false);
+  const maxAvatarBytes = 100 * 1024;
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -49,6 +55,51 @@ export default function UserProfilePage() {
     );
   }
 
+  const isOwnProfile = currentUser && parseInt(userId, 10) === currentUser.id;
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    setAvatarError('');
+    if (!file) {
+      setAvatarData('');
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setAvatarError('Only image files are allowed');
+      return;
+    }
+
+    if (file.size > maxAvatarBytes) {
+      setAvatarError('Avatar must be 100KB or less');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAvatarData(reader.result);
+    };
+    reader.onerror = () => {
+      setAvatarError('Failed to read image');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAvatarSave = async () => {
+    if (!avatarData) return;
+    setAvatarSaving(true);
+    setAvatarError('');
+    try {
+      const updated = await updateProfile({ avatar_url: avatarData });
+      setUser(updated);
+      setAvatarData('');
+    } catch (err) {
+      setAvatarError(err.response?.data?.error || 'Failed to update avatar');
+    } finally {
+      setAvatarSaving(false);
+    }
+  };
+
   const memberSince = new Date(user.created_at).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -61,7 +112,11 @@ export default function UserProfilePage() {
       
       <div className="profile-header">
         <div className="profile-avatar">
-          {user.username.charAt(0).toUpperCase()}
+          {user.avatar_url ? (
+            <img src={user.avatar_url} alt={user.username} />
+          ) : (
+            user.username.charAt(0).toUpperCase()
+          )}
         </div>
         <div className="profile-info">
           <h1>{user.username}</h1>
@@ -69,6 +124,29 @@ export default function UserProfilePage() {
           <p className="profile-meta">Member since {memberSince}</p>
         </div>
       </div>
+
+      {isOwnProfile && (
+        <div className="profile-section">
+          <h2>Update Avatar</h2>
+          <div className="avatar-uploader">
+            <input type="file" accept="image/*" onChange={handleAvatarChange} />
+            <small>Max size 100KB</small>
+            {avatarError && <div className="error-message">{avatarError}</div>}
+            {avatarData && (
+              <div className="avatar-preview">
+                <img src={avatarData} alt="Avatar preview" />
+              </div>
+            )}
+            <button
+              className="submit-btn"
+              onClick={handleAvatarSave}
+              disabled={!avatarData || avatarSaving}
+            >
+              {avatarSaving ? 'Saving...' : 'Save Avatar'}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="profile-stats">
         <div className="stat-card">

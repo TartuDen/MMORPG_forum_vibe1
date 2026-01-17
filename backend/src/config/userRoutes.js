@@ -11,7 +11,7 @@ router.get('/:id', async (req, res, next) => {
     const { id } = req.params;
 
     const result = await pool.query(
-      'SELECT id, username, role, profile_picture_url, bio, total_posts, created_at FROM users WHERE id = $1',
+      'SELECT id, username, role, profile_picture_url, avatar_url, bio, total_posts, created_at FROM users WHERE id = $1',
       [id]
     );
 
@@ -39,7 +39,7 @@ router.get('/', async (req, res, next) => {
     const offset = (page - 1) * limit;
 
     const result = await pool.query(
-      'SELECT id, username, role, profile_picture_url, bio, total_posts, created_at FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+      'SELECT id, username, role, profile_picture_url, avatar_url, bio, total_posts, created_at FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2',
       [limit, offset]
     );
 

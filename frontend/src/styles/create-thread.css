@@ -50,6 +50,20 @@
   font-size: 0.85rem;
 }
 
+.image-preview {
+  margin-top: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+  max-height: 220px;
+}
+
+.image-preview img {
+  width: 100%;
+  display: block;
+  object-fit: cover;
+}
+
 .form-actions {
   display: flex;
   gap: 1rem;

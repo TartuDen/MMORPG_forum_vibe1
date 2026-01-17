@@ -174,6 +174,32 @@ export const updateForum = async (forumId, updates) => {
 };
 
 export const deleteForum = async (forumId) => {
-  const result = await pool.query('DELETE FROM forums WHERE id = $1 RETURNING id', [forumId]);
-  return result.rows[0];
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const forumResult = await client.query(
+      'SELECT id, game_id FROM forums WHERE id = $1',
+      [forumId]
+    );
+    if (forumResult.rows.length === 0) {
+      throw { status: 404, message: 'Forum not found', code: 'FORUM_NOT_FOUND' };
+    }
+
+    const result = await client.query('DELETE FROM forums WHERE id = $1 RETURNING id, game_id', [forumId]);
+
+    const countResult = await client.query('SELECT COUNT(*) as total FROM forums WHERE game_id = $1', [result.rows[0].game_id]);
+    const total = parseInt(countResult.rows[0].total, 10);
+    if (total === 0) {
+      await client.query('UPDATE games SET auto_forum_enabled = false WHERE id = $1', [result.rows[0].game_id]);
+    }
+
+    await client.query('COMMIT');
+    return result.rows[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 };

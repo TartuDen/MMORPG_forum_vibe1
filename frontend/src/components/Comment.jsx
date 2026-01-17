@@ -52,6 +52,13 @@ export default function Comment({ comment, forumId, threadId, isOwner, onUpdate 
     <div className="comment">
       <div className="comment-header">
         <div className="comment-author">
+          {comment.author_avatar_url ? (
+            <img className="avatar-thumb" src={comment.author_avatar_url} alt={comment.author_username} />
+          ) : (
+            <span className="avatar-fallback">
+              {comment.author_username?.charAt(0)?.toUpperCase()}
+            </span>
+          )}
           <strong 
             className="username-link"
             onClick={() => navigate(`/user/${comment.user_id}`)}
