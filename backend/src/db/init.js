@@ -57,6 +57,8 @@ export const initializeDatabase = async () => {
         profile_picture_url VARCHAR(500),
         bio TEXT,
         total_posts INTEGER DEFAULT 0,
+        failed_login_attempts INTEGER DEFAULT 0,
+        locked_until TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -66,7 +68,9 @@ export const initializeDatabase = async () => {
         ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false,
         ADD COLUMN IF NOT EXISTS banned_at TIMESTAMP,
         ADD COLUMN IF NOT EXISTS banned_reason TEXT,
-        ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+        ADD COLUMN IF NOT EXISTS avatar_url TEXT,
+        ADD COLUMN IF NOT EXISTS failed_login_attempts INTEGER DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS locked_until TIMESTAMP;
     `);
 
     // Games table

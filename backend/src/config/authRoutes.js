@@ -39,12 +39,15 @@ const ACCESS_TTL_MS = parseDurationMs(process.env.JWT_EXPIRE, 60 * 60 * 1000);
 const REFRESH_TTL_MS = parseDurationMs(process.env.JWT_REFRESH_EXPIRE, 7 * 24 * 60 * 60 * 1000);
 
 const getCookieOptions = (overrides = {}) => {
-  const sameSite = process.env.COOKIE_SAME_SITE || 'lax';
+  const sameSite = process.env.COOKIE_SAME_SITE
+    || (process.env.NODE_ENV === 'production' ? 'strict' : 'lax');
   const secure = process.env.COOKIE_SECURE === 'true' || process.env.NODE_ENV === 'production';
+  const domain = process.env.COOKIE_DOMAIN || undefined;
   return {
     httpOnly: true,
     secure,
     sameSite,
+    ...(domain ? { domain } : {}),
     path: '/',
     ...overrides
   };
@@ -161,7 +164,7 @@ router.post('/login', authLimiter, async (req, res, next) => {
 });
 
 // Refresh Token
-router.post('/refresh', async (req, res, next) => {
+router.post('/refresh', authLimiter, async (req, res, next) => {
   try {
     const refreshToken = getRefreshTokenFromRequest(req);
 

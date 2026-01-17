@@ -45,20 +45,28 @@ const keyByIpOrUser = (req) => {
   return `ip:${req.ip}`;
 };
 
+const isTestEnv = process.env.NODE_ENV === 'test';
+const envLimit = (name, fallback) => {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isNaN(parsed) ? fallback : parsed;
+};
+
 export const generalLimiter = createRateLimiter({
   windowMs: 60 * 1000,
-  max: 120,
+  max: isTestEnv ? 1000 : envLimit('RATE_LIMIT_GENERAL_MAX', 120),
   keyGenerator: keyByIpOrUser
 });
 
 export const authLimiter = createRateLimiter({
   windowMs: 60 * 1000,
-  max: 20,
+  max: isTestEnv ? 1000 : envLimit('RATE_LIMIT_AUTH_MAX', 20),
   keyGenerator: (req) => `auth:${req.ip}`
 });
 
 export const writeLimiter = createRateLimiter({
   windowMs: 60 * 1000,
-  max: 40,
+  max: isTestEnv ? 1000 : envLimit('RATE_LIMIT_WRITE_MAX', 40),
   keyGenerator: keyByIpOrUser
 });

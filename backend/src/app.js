@@ -14,6 +14,8 @@ dotenv.config();
 
 const app = express();
 
+app.disable('x-powered-by');
+
 if (process.env.TRUST_PROXY === 'true') {
   app.set('trust proxy', 1);
 }
@@ -35,16 +37,111 @@ const ensureDbInitialized = async (req, res, next) => {
 
 app.use(ensureDbInitialized);
 
-app.use(generalLimiter);
+const parseAllowedOrigins = () => {
+  const origins = new Set();
+  const primary = process.env.FRONTEND_URL || 'http://localhost:5173';
+  if (primary) origins.add(primary);
+
+  if (process.env.NODE_ENV !== 'production') {
+    origins.add('http://localhost:5173');
+    origins.add('http://127.0.0.1:5173');
+  }
+
+  const extra = process.env.FRONTEND_URLS || process.env.CORS_ALLOWED_ORIGINS;
+  if (extra) {
+    for (const origin of extra.split(',')) {
+      const trimmed = origin.trim();
+      if (trimmed) origins.add(trimmed);
+    }
+  }
+
+  return origins;
+};
+
+const allowedOrigins = parseAllowedOrigins();
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return false;
+  if (allowedOrigins.has(origin)) return true;
+  return false;
+};
+
+const getOriginFromHeaders = (req) => {
+  const origin = req.headers.origin;
+  if (origin) return origin;
+
+  const referer = req.headers.referer;
+  if (!referer) return null;
+  try {
+    const parsed = new URL(referer);
+    return parsed.origin;
+  } catch (error) {
+    return null;
+  }
+};
+
+const enforceOriginPolicy = (req, res, next) => {
+  const method = req.method.toUpperCase();
+  if (['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    return next();
+  }
+
+  const origin = getOriginFromHeaders(req);
+  if (!origin) {
+    return next();
+  }
+
+  if (!isAllowedOrigin(origin)) {
+    return res.status(403).json({
+      error: 'Origin not allowed',
+      code: 'ORIGIN_NOT_ALLOWED'
+    });
+  }
+
+  return next();
+};
+
+const securityHeaders = (req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+  );
+
+  next();
+};
 
 // Middleware
+app.use(securityHeaders);
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin) {
+      return callback(null, true);
+    }
+    return callback(null, isAllowedOrigin(origin));
+  },
+  methods: ['GET', 'HEAD', 'OPTIONS', 'PUT', 'POST', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
   credentials: true
 }));
 
+app.use(generalLimiter);
+
 app.use(express.json({ limit: '512kb' }));
 app.use(express.urlencoded({ extended: true, limit: '512kb' }));
+app.use(enforceOriginPolicy);
 app.use(csrfProtection({ ignorePaths: ['/api/auth/login', '/api/auth/register'] }));
 
 // Routes

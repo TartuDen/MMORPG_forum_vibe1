@@ -2,6 +2,15 @@ import pool from '../db/connection.js';
 import { hashPassword, comparePassword } from '../utils/password.js';
 import { validateEmail, validateUsername, validatePassword, sanitizeUser, parseImageDataUrl } from '../utils/validators.js';
 
+const MAX_FAILED_LOGIN_ATTEMPTS = Number.parseInt(
+  process.env.MAX_FAILED_LOGIN_ATTEMPTS || '5',
+  10
+);
+const LOGIN_LOCKOUT_MINUTES = Number.parseInt(
+  process.env.LOGIN_LOCKOUT_MINUTES || '15',
+  10
+);
+
 export const registerUser = async (username, email, password) => {
   // Validate inputs
   if (!validateUsername(username)) {
@@ -40,7 +49,8 @@ export const loginUser = async (identifier, password) => {
   const supportEmail = process.env.SUPPORT_EMAIL || 'support@example.com';
   // Find user by email or username
   const result = await pool.query(
-    `SELECT id, username, email, password_hash, role, is_banned, avatar_url
+    `SELECT id, username, email, password_hash, role, is_banned, avatar_url,
+            failed_login_attempts, locked_until
      FROM users
      WHERE email = $1 OR username = $1`,
     [identifier]
@@ -59,10 +69,38 @@ export const loginUser = async (identifier, password) => {
     };
   }
 
+  if (user.locked_until && new Date(user.locked_until) > new Date()) {
+    throw {
+      status: 403,
+      message: 'Account is temporarily locked. Please try again later.',
+      code: 'ACCOUNT_LOCKED'
+    };
+  }
+
   // Compare password
   const isMatch = await comparePassword(password, user.password_hash);
   if (!isMatch) {
+    await pool.query(
+      `UPDATE users
+       SET failed_login_attempts = failed_login_attempts + 1,
+           locked_until = CASE
+             WHEN failed_login_attempts + 1 >= $2 THEN CURRENT_TIMESTAMP + ($3 || ' minutes')::interval
+             ELSE locked_until
+           END
+       WHERE id = $1`,
+      [user.id, MAX_FAILED_LOGIN_ATTEMPTS, `${LOGIN_LOCKOUT_MINUTES}`]
+    );
     throw { status: 401, message: 'Invalid credentials', code: 'INVALID_CREDENTIALS' };
+  }
+
+  if (user.failed_login_attempts > 0 || user.locked_until) {
+    await pool.query(
+      `UPDATE users
+       SET failed_login_attempts = 0,
+           locked_until = NULL
+       WHERE id = $1`,
+      [user.id]
+    );
   }
 
   return sanitizeUser(user);
