@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllForums, getForumById, createForum, createGame } from '../modules/forums.js';
+import { getAllForums, getForumById, createForum, createGame, updateGame, deleteForum, deleteGame } from '../modules/forums.js';
 import { getAllThreads, getThreadById, createThread, updateThread, deleteThread, incrementThreadViews } from '../modules/threads.js';
 import { getThreadComments, createComment, updateComment, deleteComment } from '../modules/comments.js';
 import { authenticate, authorize } from '../middleware/auth.js';
@@ -10,7 +10,7 @@ const router = express.Router();
 // Get all games
 router.get('/games/all', async (req, res, next) => {
   try {
-    const result = await pool.query('SELECT id, name, description, icon_url FROM games ORDER BY name');
+    const result = await pool.query('SELECT id, name, description, tags, icon_url, website_url FROM games ORDER BY name');
     res.status(200).json({
       data: result.rows,
       message: 'Games retrieved'
@@ -69,7 +69,7 @@ router.post('/create', authenticate, authorize('admin'), async (req, res, next) 
 // Create new game (admin only)
 router.post('/games', authenticate, authorize('admin'), async (req, res, next) => {
   try {
-    const { name, description = '', icon_url = null, website_url = null } = req.body;
+    const { name, description = '', tags, icon_url = null, website_url = null } = req.body;
 
     if (!name || name.trim().length < 2) {
       return res.status(400).json({
@@ -78,12 +78,81 @@ router.post('/games', authenticate, authorize('admin'), async (req, res, next) =
       });
     }
 
-    const game = await createGame(name.trim(), description, icon_url, website_url);
+    if (!Array.isArray(tags) || tags.length === 0) {
+      return res.status(400).json({
+        error: 'At least one tag is required',
+        code: 'MISSING_TAGS'
+      });
+    }
+
+    const game = await createGame(name.trim(), description, tags, icon_url, website_url);
 
     res.status(201).json({
       data: game,
       message: 'Game created successfully'
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update game (admin only)
+router.put('/games/:gameId', authenticate, authorize('admin'), async (req, res, next) => {
+  try {
+    const { gameId } = req.params;
+    const gameIdValue = parseInt(gameId, 10);
+    if (Number.isNaN(gameIdValue)) {
+      return res.status(400).json({
+        error: 'Invalid game id',
+        code: 'INVALID_GAME_ID'
+      });
+    }
+
+    const { name, description, tags, icon_url, website_url } = req.body;
+    const updated = await updateGame(gameIdValue, { name, description, tags, icon_url, website_url });
+
+    res.status(200).json({
+      data: updated,
+      message: 'Game updated successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete game (admin only)
+router.delete('/games/:gameId', authenticate, authorize('admin'), async (req, res, next) => {
+  try {
+    const { gameId } = req.params;
+    const gameIdValue = parseInt(gameId, 10);
+    if (Number.isNaN(gameIdValue)) {
+      return res.status(400).json({
+        error: 'Invalid game id',
+        code: 'INVALID_GAME_ID'
+      });
+    }
+
+    await deleteGame(gameIdValue);
+    res.status(200).json({ message: 'Game deleted' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete forum (admin only)
+router.delete('/:forumId', authenticate, authorize('admin'), async (req, res, next) => {
+  try {
+    const { forumId } = req.params;
+    const forumIdValue = parseInt(forumId, 10);
+    if (Number.isNaN(forumIdValue)) {
+      return res.status(400).json({
+        error: 'Invalid forum id',
+        code: 'INVALID_FORUM_ID'
+      });
+    }
+
+    await deleteForum(forumIdValue);
+    res.status(200).json({ message: 'Forum deleted' });
   } catch (error) {
     next(error);
   }
@@ -205,7 +274,7 @@ router.delete('/:forumId/threads/:threadId', authenticate, async (req, res, next
   try {
     const { threadId } = req.params;
 
-    await deleteThread(threadId, req.userId);
+    await deleteThread(threadId, req.userId, req.userRole);
 
     res.status(200).json({
       message: 'Thread deleted'

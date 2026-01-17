@@ -32,6 +32,10 @@
   font-size: 0.9rem;
 }
 
+.comment-author .role-badge {
+  margin-left: 0.25rem;
+}
+
 .comment-author strong {
   color: var(--color-dark);
 }

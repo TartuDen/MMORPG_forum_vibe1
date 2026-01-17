@@ -56,6 +56,9 @@ export default function Comment({ comment, forumId, threadId, isOwner, onUpdate 
             className="username-link"
             onClick={() => navigate(`/user/${comment.user_id}`)}
           >{comment.author_username}</strong>
+          {comment.author_role === 'admin' && (
+            <span className="role-badge admin">Admin</span>
+          )}
           <span className="comment-date">
             {new Date(comment.created_at).toLocaleString()}
           </span>

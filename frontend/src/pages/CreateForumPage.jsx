@@ -1,160 +1,336 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { forumsAPI } from '../services/api';
+import { useAuth } from '../services/authContext';
 import '../styles/create-forum.css';
 
 export default function CreateForumPage() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    gameId: '',
-    name: '',
-    description: ''
-  });
+  const { user } = useAuth();
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [charCounts, setCharCounts] = useState({
-    name: 0,
-    description: 0
+  const [success, setSuccess] = useState('');
+  const [gameForm, setGameForm] = useState({
+    name: '',
+    description: '',
+    tags: '',
+    icon_url: '',
+    website_url: ''
+  });
+  const [gameEdit, setGameEdit] = useState({
+    id: '',
+    name: '',
+    description: '',
+    tags: '',
+    icon_url: '',
+    website_url: ''
   });
 
-  useEffect(() => {
-    const fetchGames = async () => {
-      try {
-        const response = await forumsAPI.getGames();
-        setGames(response.data.data);
-      } catch (err) {
-        setError('Failed to load games');
-        console.error(err);
-      }
-    };
-    fetchGames();
-  }, []);
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
-    if (name === 'name' || name === 'description') {
-      setCharCounts(prev => ({
-        ...prev,
-        [name]: value.length
-      }));
+  const fetchGames = async () => {
+    try {
+      const response = await forumsAPI.getGames();
+      setGames(response.data.data);
+    } catch (err) {
+      setError('Failed to load games');
+      console.error(err);
     }
   };
 
-  const handleSubmit = async (e) => {
+  useEffect(() => {
+    fetchGames();
+  }, []);
+
+  const handleGameInputChange = (e) => {
+    const { name, value } = e.target;
+    setGameForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleGameEditChange = (e) => {
+    const { name, value } = e.target;
+    setGameEdit(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSelectGameEdit = (e) => {
+    const gameId = parseInt(e.target.value, 10);
+    const game = games.find(item => item.id === gameId);
+    if (!game) {
+      setGameEdit({ id: '', name: '', description: '', tags: '', icon_url: '', website_url: '' });
+      return;
+    }
+
+    setGameEdit({
+      id: game.id,
+      name: game.name || '',
+      description: game.description || '',
+      tags: Array.isArray(game.tags) ? game.tags.join(', ') : '',
+      icon_url: game.icon_url || '',
+      website_url: game.website_url || ''
+    });
+  };
+
+  const handleCreateGame = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
-    if (!formData.gameId) {
-      setError('Please select a game');
+    if (!gameForm.name.trim()) {
+      setError('Game name is required');
       return;
     }
 
-    if (formData.name.length < 3 || formData.name.length > 100) {
-      setError('Forum name must be between 3 and 100 characters');
-      return;
-    }
-
-    if (formData.description.length < 10 || formData.description.length > 500) {
-      setError('Description must be between 10 and 500 characters');
+    if (!gameForm.tags.trim()) {
+      setError('At least one tag is required');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await forumsAPI.createForum(
-        parseInt(formData.gameId),
-        formData.name,
-        formData.description
-      );
-      navigate('/');
+      await forumsAPI.createGame({
+        name: gameForm.name.trim(),
+        description: gameForm.description.trim(),
+        tags: gameForm.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+        icon_url: gameForm.icon_url.trim() || null,
+        website_url: gameForm.website_url.trim() || null
+      });
+      setGameForm({ name: '', description: '', tags: '', icon_url: '', website_url: '' });
+      await fetchGames();
+      setSuccess('Game created successfully.');
     } catch (err) {
-      const errorMsg = err.response?.data?.error || 
-                       err.response?.data?.message || 
-                       'Failed to create forum';
+      const errorMsg = err.response?.data?.error ||
+                       err.response?.data?.message ||
+                       'Failed to create game';
       setError(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleUpdateGame = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!gameEdit.id) {
+      setError('Select a game to update');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await forumsAPI.updateGame(gameEdit.id, {
+        name: gameEdit.name.trim(),
+        description: gameEdit.description.trim(),
+        tags: gameEdit.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+        icon_url: gameEdit.icon_url.trim() || null,
+        website_url: gameEdit.website_url.trim() || null
+      });
+      if (response?.data?.data) {
+        const updated = response.data.data;
+        setGameEdit({
+          id: updated.id,
+          name: updated.name || '',
+          description: updated.description || '',
+          tags: Array.isArray(updated.tags) ? updated.tags.join(', ') : '',
+          icon_url: updated.icon_url || '',
+          website_url: updated.website_url || ''
+        });
+      }
+      await fetchGames();
+      setSuccess('Game updated successfully.');
+    } catch (err) {
+      const errorMsg = err.response?.data?.error ||
+                       err.response?.data?.message ||
+                       'Failed to update game';
+      setError(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!user || user.role !== 'admin') {
+    return (
+      <div className="container">
+        <div className="create-forum-wrapper">
+          <button className="btn-back" onClick={() => navigate('/')}>Back to Forums</button>
+          <div className="create-forum-box">
+            <h2>Admin Access Required</h2>
+            <p className="error-message">Only admins can manage games.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container">
       <div className="create-forum-wrapper">
-        <button className="btn-back" onClick={() => navigate('/')}>← Back to Forums</button>
-        
-        <div className="create-forum-box">
-          <h2>Create New Forum</h2>
-          
-          {error && <div className="error-message">{error}</div>}
+        <button className="btn-back" onClick={() => navigate('/')}>Back to Forums</button>
 
-          <form onSubmit={handleSubmit}>
+        <div className="create-forum-box">
+          <h2>Create New Game</h2>
+
+          {error && <div className="error-message">{error}</div>}
+          {success && <div className="success-message">{success}</div>}
+
+          <form onSubmit={handleCreateGame}>
             <div className="form-group">
-              <label htmlFor="gameId">Select Game *</label>
-              <select
-                id="gameId"
-                name="gameId"
-                value={formData.gameId}
-                onChange={handleInputChange}
+              <label htmlFor="gameName">Game Name *</label>
+              <input
+                id="gameName"
+                name="name"
+                type="text"
+                value={gameForm.name}
+                onChange={handleGameInputChange}
+                placeholder="e.g., World of Warcraft"
                 required
-              >
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="gameDescription">Description</label>
+              <textarea
+                id="gameDescription"
+                name="description"
+                value={gameForm.description}
+                onChange={handleGameInputChange}
+                placeholder="Short description"
+                rows="3"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="gameTags">Tags *</label>
+              <input
+                id="gameTags"
+                name="tags"
+                type="text"
+                value={gameForm.tags}
+                onChange={handleGameInputChange}
+                placeholder="mmo, pvp, pve, sandbox"
+                required
+              />
+              <small className="form-hint">Comma-separated tags</small>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="gameIcon">Icon URL</label>
+              <input
+                id="gameIcon"
+                name="icon_url"
+                type="text"
+                value={gameForm.icon_url}
+                onChange={handleGameInputChange}
+                placeholder="https://..."
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="gameWebsite">Website URL</label>
+              <input
+                id="gameWebsite"
+                name="website_url"
+                type="text"
+                value={gameForm.website_url}
+                onChange={handleGameInputChange}
+                placeholder="https://..."
+              />
+            </div>
+
+            <button type="submit" className="submit-btn" disabled={loading}>
+              {loading ? 'Creating Game...' : 'Create Game'}
+            </button>
+          </form>
+        </div>
+
+        <div className="create-forum-box">
+          <h2>Update Game</h2>
+
+          {error && <div className="error-message">{error}</div>}
+          {success && <div className="success-message">{success}</div>}
+
+          <form onSubmit={handleUpdateGame}>
+            <div className="form-group">
+              <label htmlFor="gameEditSelect">Select Game *</label>
+              <select id="gameEditSelect" onChange={handleSelectGameEdit} value={gameEdit.id}>
                 <option value="">-- Choose a game --</option>
                 {games.map(game => (
                   <option key={game.id} value={game.id}>
-                    {game.icon_url} {game.name}
+                    {game.name}
                   </option>
                 ))}
               </select>
-              <small className="form-hint">The game category for this forum</small>
             </div>
 
             <div className="form-group">
-              <label htmlFor="name">Forum Name *</label>
+              <label htmlFor="gameEditName">Game Name</label>
               <input
-                id="name"
-                type="text"
+                id="gameEditName"
                 name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                placeholder="e.g., Raid Strategies, General Discussion"
-                maxLength="100"
-                required
+                type="text"
+                value={gameEdit.name}
+                onChange={handleGameEditChange}
+                placeholder="Game name"
               />
-              <div className="char-counter">
-                {charCounts.name}/100 characters
-              </div>
-              <small className="form-hint">3-100 characters, must be descriptive</small>
             </div>
 
             <div className="form-group">
-              <label htmlFor="description">Description *</label>
+              <label htmlFor="gameEditDescription">Description</label>
               <textarea
-                id="description"
+                id="gameEditDescription"
                 name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                placeholder="Describe what topics belong in this forum. Be specific so members know when to post here."
-                rows="5"
-                maxLength="500"
-                required
+                value={gameEdit.description}
+                onChange={handleGameEditChange}
+                placeholder="Description"
+                rows="3"
               />
-              <div className="char-counter">
-                {charCounts.description}/500 characters
-              </div>
-              <small className="form-hint">10-500 characters</small>
             </div>
 
-            <button
-              type="submit"
-              className="submit-btn"
-              disabled={loading}
-            >
-              {loading ? 'Creating Forum...' : 'Create Forum'}
+            <div className="form-group">
+              <label htmlFor="gameEditTags">Tags</label>
+              <input
+                id="gameEditTags"
+                name="tags"
+                type="text"
+                value={gameEdit.tags}
+                onChange={handleGameEditChange}
+                placeholder="mmo, pvp, pve"
+              />
+              <small className="form-hint">Comma-separated tags</small>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="gameEditIcon">Icon URL</label>
+              <input
+                id="gameEditIcon"
+                name="icon_url"
+                type="text"
+                value={gameEdit.icon_url}
+                onChange={handleGameEditChange}
+                placeholder="https://..."
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="gameEditWebsite">Website URL</label>
+              <input
+                id="gameEditWebsite"
+                name="website_url"
+                type="text"
+                value={gameEdit.website_url}
+                onChange={handleGameEditChange}
+                placeholder="https://..."
+              />
+            </div>
+
+            <button type="submit" className="submit-btn" disabled={loading}>
+              {loading ? 'Updating Game...' : 'Update Game'}
             </button>
           </form>
         </div>

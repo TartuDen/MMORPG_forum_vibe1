@@ -7,7 +7,7 @@ export const getThreadComments = async (threadId, page = 1, limit = 10) => {
     SELECT 
       c.id, c.thread_id, c.user_id, c.content,
       c.is_edited, c.is_deleted, c.created_at, c.updated_at,
-      u.username as author_username, u.profile_picture_url as author_picture
+      u.username as author_username, u.profile_picture_url as author_picture, u.role as author_role
     FROM comments c
     JOIN users u ON c.user_id = u.id
     WHERE c.thread_id = $1 AND c.is_deleted = false
