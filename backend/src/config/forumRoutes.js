@@ -1,8 +1,8 @@
 import express from 'express';
-import { getAllForums, getForumById, createForum } from '../modules/forums.js';
+import { getAllForums, getForumById, createForum, createGame } from '../modules/forums.js';
 import { getAllThreads, getThreadById, createThread, updateThread, deleteThread, incrementThreadViews } from '../modules/threads.js';
 import { getThreadComments, createComment, updateComment, deleteComment } from '../modules/comments.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, authorize } from '../middleware/auth.js';
 import pool from '../db/connection.js';
 
 const router = express.Router();
@@ -21,7 +21,7 @@ router.get('/games/all', async (req, res, next) => {
 });
 
 // Create new forum
-router.post('/create', authenticate, async (req, res, next) => {
+router.post('/create', authenticate, authorize('admin'), async (req, res, next) => {
   try {
     const { gameId, name, description } = req.body;
 
@@ -60,6 +60,29 @@ router.post('/create', authenticate, async (req, res, next) => {
     res.status(201).json({
       data: forum,
       message: 'Forum created successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Create new game (admin only)
+router.post('/games', authenticate, authorize('admin'), async (req, res, next) => {
+  try {
+    const { name, description = '', icon_url = null, website_url = null } = req.body;
+
+    if (!name || name.trim().length < 2) {
+      return res.status(400).json({
+        error: 'Game name is required',
+        code: 'MISSING_FIELDS'
+      });
+    }
+
+    const game = await createGame(name.trim(), description, icon_url, website_url);
+
+    res.status(201).json({
+      data: game,
+      message: 'Game created successfully'
     });
   } catch (error) {
     next(error);
