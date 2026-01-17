@@ -82,7 +82,10 @@ export default function HomePage() {
         <h3>Game Hubs</h3>
         <p className="section-subtitle">Jump into the main forum for each game</p>
         <div className="games-grid">
-          {games.filter((game) => game.name !== 'Community').map((game) => {
+          {games
+            .filter((game) => game.name !== 'Community')
+            .filter((game) => forumByGame[game.id])
+            .map((game) => {
             const forum = forumByGame[game.id];
             return (
               <div
@@ -114,11 +117,11 @@ export default function HomePage() {
                   )}
                 </div>
                 <p>{game.description || 'No description yet.'}</p>
-                {!forum && (
-                  <span className="game-card-hint">
-                    No forums yet
-                  </span>
-                )}
+              {!forum && (
+                <span className="game-card-hint">
+                  No forums yet
+                </span>
+              )}
               </div>
             );
           })}

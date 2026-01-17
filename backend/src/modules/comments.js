@@ -85,7 +85,7 @@ export const updateComment = async (commentId, userId, content) => {
   return result.rows[0];
 };
 
-export const deleteComment = async (commentId, userId) => {
+export const deleteComment = async (commentId, userId, userRole) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -96,7 +96,7 @@ export const deleteComment = async (commentId, userId) => {
       throw { status: 404, message: 'Comment not found', code: 'COMMENT_NOT_FOUND' };
     }
 
-    if (commentResult.rows[0].user_id !== userId) {
+    if (commentResult.rows[0].user_id !== userId && userRole !== 'admin') {
       throw { status: 403, message: 'Not authorized to delete this comment', code: 'UNAUTHORIZED' };
     }
 

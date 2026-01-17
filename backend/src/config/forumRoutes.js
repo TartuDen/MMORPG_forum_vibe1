@@ -337,7 +337,7 @@ router.delete('/:forumId/threads/:threadId/comments/:commentId', authenticate, a
   try {
     const { commentId } = req.params;
 
-    await deleteComment(commentId, req.userId);
+    await deleteComment(commentId, req.userId, req.userRole);
 
     res.status(200).json({
       message: 'Comment deleted'
