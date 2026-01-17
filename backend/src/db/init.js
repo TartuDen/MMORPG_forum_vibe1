@@ -150,6 +150,21 @@ export const initializeDatabase = async () => {
       );
     `);
 
+    // Refresh tokens table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS refresh_tokens (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token_hash VARCHAR(128) UNIQUE NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        revoked_at TIMESTAMP,
+        replaced_by INTEGER REFERENCES refresh_tokens(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_by_ip VARCHAR(100),
+        revoked_by_ip VARCHAR(100)
+      );
+    `);
+
     // Create indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);`);
@@ -164,6 +179,7 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_moderation_log_created_at ON moderation_log(created_at);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_moderation_log_moderator ON moderation_log(moderator_id);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);`);
 
     // Seed default games if none exist
     const gameCount = await pool.query('SELECT COUNT(*) as total FROM games');

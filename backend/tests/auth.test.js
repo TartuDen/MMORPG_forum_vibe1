@@ -26,41 +26,65 @@ await new Promise((resolve) => server.listen(0, resolve));
 const { port } = server.address();
 const baseUrl = `http://127.0.0.1:${port}/api`;
 
-const postJson = async (path, payload, token = null) => {
-  const response = await fetch(`${baseUrl}${path}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
-    body: JSON.stringify(payload)
-  });
-  const body = await response.json();
-  return { status: response.status, body };
-};
+const createClient = () => {
+  const jar = {};
 
-const putJson = async (path, payload, token = null) => {
-  const response = await fetch(`${baseUrl}${path}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
-    body: JSON.stringify(payload)
-  });
-  const body = await response.json();
-  return { status: response.status, body };
-};
+  const buildCookieHeader = () => {
+    const entries = Object.entries(jar);
+    if (entries.length === 0) return '';
+    return entries.map(([key, value]) => `${key}=${value}`).join('; ');
+  };
 
-const deleteJson = async (path, token = null) => {
-  const response = await fetch(`${baseUrl}${path}`, {
-    method: 'DELETE',
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
+  const updateCookies = (setCookieHeader) => {
+    if (!setCookieHeader) return;
+    const cookieParts = Array.isArray(setCookieHeader)
+      ? setCookieHeader
+      : setCookieHeader.split(/,(?=[^;]+=[^;]+)/);
+    for (const part of cookieParts) {
+      const [pair] = part.split(';');
+      const [name, value] = pair.trim().split('=');
+      if (name) {
+        jar[name] = value ?? '';
+      }
     }
-  });
-  const body = await response.json().catch(() => ({}));
-  return { status: response.status, body };
+  };
+
+  const request = async (method, path, payload) => {
+    const headers = {};
+    if (payload) {
+      headers['Content-Type'] = 'application/json';
+    }
+    const cookieHeader = buildCookieHeader();
+    if (cookieHeader) {
+      headers.Cookie = cookieHeader;
+    }
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+      if (jar.csrf_token) {
+        headers['X-CSRF-Token'] = jar.csrf_token;
+      }
+    }
+
+    const response = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers,
+      body: payload ? JSON.stringify(payload) : undefined
+    });
+
+    if (typeof response.headers.getSetCookie === 'function') {
+      updateCookies(response.headers.getSetCookie());
+    } else {
+      updateCookies(response.headers.get('set-cookie'));
+    }
+    const body = await response.json().catch(() => ({}));
+    return { status: response.status, body };
+  };
+
+  return {
+    get: (path) => request('GET', path),
+    post: (path, payload) => request('POST', path, payload),
+    put: (path, payload) => request('PUT', path, payload),
+    delete: (path) => request('DELETE', path)
+  };
 };
 
 const tests = [];
@@ -69,25 +93,26 @@ const runTest = (name, fn) => {
   tests.push({ name, fn });
 };
 
-let adminToken = null;
+let adminClient = null;
 
-const ensureAdminToken = async () => {
-  if (adminToken) return adminToken;
-  const login = await postJson('/auth/login', { username: 'pomogA', password: 'Plot123123' });
+const ensureAdminClient = async () => {
+  if (adminClient) return adminClient;
+  adminClient = createClient();
+  const login = await adminClient.post('/auth/login', { username: 'pomogA', password: 'Plot123123' });
   if (login.status !== 200) {
     throw new Error('Failed to login as admin');
   }
-  adminToken = login.body.data.token;
-  return adminToken;
+  return adminClient;
 };
 
 runTest('registers a new user and logs in with email', async () => {
+  const client = createClient();
   const suffix = Date.now();
   const username = `tester_${suffix}`;
   const email = `tester_${suffix}@example.com`;
   const password = 'StrongPass1';
 
-  const register = await postJson('/auth/register', {
+  const register = await client.post('/auth/register', {
     username,
     email,
     password,
@@ -97,18 +122,19 @@ runTest('registers a new user and logs in with email', async () => {
   assert.equal(register.status, 201);
   assert.equal(register.body?.data?.user?.username, username);
 
-  const login = await postJson('/auth/login', { email, password });
+  const login = await client.post('/auth/login', { email, password });
   assert.equal(login.status, 200);
-  assert.ok(login.body?.data?.token);
+  assert.ok(login.body?.data?.user?.id);
 });
 
 runTest('logs in with username', async () => {
+  const client = createClient();
   const suffix = Date.now().toString().slice(-6);
   const username = `user_${suffix}`;
   const email = `user_${suffix}@example.com`;
   const password = 'StrongPass1';
 
-  const register = await postJson('/auth/register', {
+  const register = await client.post('/auth/register', {
     username,
     email,
     password,
@@ -117,35 +143,35 @@ runTest('logs in with username', async () => {
 
   assert.equal(register.status, 201);
 
-  const login = await postJson('/auth/login', { username, password });
+  const login = await client.post('/auth/login', { username, password });
   assert.equal(login.status, 200);
-  assert.ok(login.body?.data?.token);
+  assert.ok(login.body?.data?.user?.id);
 });
 
 runTest('admin creates, updates, and deletes a game', async () => {
-  const token = await ensureAdminToken();
+  const admin = await ensureAdminClient();
   const suffix = Date.now();
   const name = `Test Game ${suffix}`;
 
-  const create = await postJson('/forums/games', {
+  const create = await admin.post('/forums/games', {
     name,
     description: 'Initial description',
     tags: ['mmorpg', 'pvp'],
     icon_url: '',
     website_url: ''
-  }, token);
+  });
 
   assert.equal(create.status, 201);
   const gameId = create.body?.data?.id;
   assert.ok(gameId);
 
-  const update = await putJson(`/forums/games/${gameId}`, {
+  const update = await admin.put(`/forums/games/${gameId}`, {
     name: `${name} Updated`,
     description: 'Updated description',
     tags: ['mmorpg', 'pve', 'pvp'],
     icon_url: 'https://example.com/icon.png',
     website_url: 'https://example.com'
-  }, token);
+  });
 
   assert.equal(update.status, 200);
 
@@ -158,18 +184,19 @@ runTest('admin creates, updates, and deletes a game', async () => {
   assert.equal(updatedGame.website_url, 'https://example.com');
   assert.equal(updatedGame.tags.length, 3);
 
-  const remove = await deleteJson(`/forums/games/${gameId}`, token);
+  const remove = await admin.delete(`/forums/games/${gameId}`);
   assert.equal(remove.status, 200);
 });
 
 runTest('admin can promote and ban a user', async () => {
-  const token = await ensureAdminToken();
+  const admin = await ensureAdminClient();
+  const client = createClient();
   const suffix = Date.now();
   const username = `roleuser_${suffix}`.slice(0, 20);
   const email = `roleuser_${suffix}@example.com`;
   const password = 'StrongPass1';
 
-  const register = await postJson('/auth/register', {
+  const register = await client.post('/auth/register', {
     username,
     email,
     password,
@@ -179,102 +206,104 @@ runTest('admin can promote and ban a user', async () => {
   const userId = register.body?.data?.user?.id;
   assert.ok(userId);
 
-  const promote = await putJson(`/users/${userId}/role`, { role: 'admin' }, token);
+  const promote = await admin.put(`/users/${userId}/role`, { role: 'admin' });
   assert.equal(promote.status, 200);
   assert.equal(promote.body?.data?.role, 'admin');
 
-  const ban = await postJson(`/users/${userId}/ban`, { reason: 'Testing' }, token);
+  const ban = await admin.post(`/users/${userId}/ban`, { reason: 'Testing' });
   assert.equal(ban.status, 200);
 
-  const bannedLogin = await postJson('/auth/login', { email, password });
+  const bannedClient = createClient();
+  const bannedLogin = await bannedClient.post('/auth/login', { email, password });
   assert.equal(bannedLogin.status, 403);
 });
 
 runTest('user can update profile, add thread, and delete own comment', async () => {
+  const client = createClient();
   const suffix = Date.now();
   const username = `user_${suffix}`.slice(0, 20);
   const email = `user_${suffix}@example.com`;
   const password = 'StrongPass1';
 
-  const register = await postJson('/auth/register', {
+  const register = await client.post('/auth/register', {
     username,
     email,
     password,
     confirmPassword: password
   });
   assert.equal(register.status, 201);
-  const token = register.body?.data?.token;
-  assert.ok(token);
+  assert.ok(register.body?.data?.user?.id);
 
-  const updateProfile = await putJson('/auth/me', {
+  const updateProfile = await client.put('/auth/me', {
     bio: 'Testing profile update'
-  }, token);
+  });
   assert.equal(updateProfile.status, 200);
   assert.equal(updateProfile.body?.data?.bio, 'Testing profile update');
 
-  const forums = await fetch(`${baseUrl}/forums`);
-  const forumsBody = await forums.json();
+  const forums = await client.get('/forums');
+  const forumsBody = forums.body;
   const forumId = forumsBody?.data?.[0]?.id;
   assert.ok(forumId);
 
-  const createThread = await postJson(`/forums/${forumId}/threads`, {
+  const createThread = await client.post(`/forums/${forumId}/threads`, {
     title: 'Test Thread',
     content: 'Testing thread creation.'
-  }, token);
+  });
   assert.equal(createThread.status, 201);
   const threadId = createThread.body?.data?.id;
   assert.ok(threadId);
 
-  const createComment = await postJson(`/forums/${forumId}/threads/${threadId}/comments`, {
+  const createComment = await client.post(`/forums/${forumId}/threads/${threadId}/comments`, {
     content: 'My comment'
-  }, token);
+  });
   assert.equal(createComment.status, 201);
   const commentId = createComment.body?.data?.id;
   assert.ok(commentId);
 
-  const removeComment = await deleteJson(`/forums/${forumId}/threads/${threadId}/comments/${commentId}`, token);
+  const removeComment = await client.delete(`/forums/${forumId}/threads/${threadId}/comments/${commentId}`);
   assert.equal(removeComment.status, 200);
 });
 
 runTest('thread can be deleted by admin only', async () => {
+  const client = createClient();
   const suffix = Date.now();
   const username = `ownthread_${suffix}`.slice(0, 20);
   const email = `ownthread_${suffix}@example.com`;
   const password = 'StrongPass1';
 
-  const register = await postJson('/auth/register', {
+  const register = await client.post('/auth/register', {
     username,
     email,
     password,
     confirmPassword: password
   });
   assert.equal(register.status, 201);
-  const token = register.body?.data?.token;
-  assert.ok(token);
+  assert.ok(register.body?.data?.user?.id);
 
-  const forums = await fetch(`${baseUrl}/forums`);
-  const forumsBody = await forums.json();
+  const forums = await client.get('/forums');
+  const forumsBody = forums.body;
   const forumId = forumsBody?.data?.[0]?.id;
   assert.ok(forumId);
 
-  const createThread = await postJson(`/forums/${forumId}/threads`, {
+  const createThread = await client.post(`/forums/${forumId}/threads`, {
     title: 'User thread',
     content: 'Thread for delete test.'
-  }, token);
+  });
   assert.equal(createThread.status, 201);
   const threadId = createThread.body?.data?.id;
   assert.ok(threadId);
 
-  const deleteByUser = await deleteJson(`/forums/${forumId}/threads/${threadId}`, token);
+  const deleteByUser = await client.delete(`/forums/${forumId}/threads/${threadId}`);
   assert.equal(deleteByUser.status, 403);
 
-  const adminTokenValue = await ensureAdminToken();
-  const deleteByAdmin = await deleteJson(`/forums/${forumId}/threads/${threadId}`, adminTokenValue);
+  const admin = await ensureAdminClient();
+  const deleteByAdmin = await admin.delete(`/forums/${forumId}/threads/${threadId}`);
   assert.equal(deleteByAdmin.status, 200);
 });
 
 runTest('rejects invalid usernames', async () => {
-  const response = await postJson('/auth/register', {
+  const client = createClient();
+  const response = await client.post('/auth/register', {
     username: 'ab',
     email: 'shortname@example.com',
     password: 'StrongPass1',
@@ -286,7 +315,8 @@ runTest('rejects invalid usernames', async () => {
 });
 
 runTest('rejects invalid emails', async () => {
-  const response = await postJson('/auth/register', {
+  const client = createClient();
+  const response = await client.post('/auth/register', {
     username: 'valid_user',
     email: 'not-an-email',
     password: 'StrongPass1',
@@ -298,7 +328,8 @@ runTest('rejects invalid emails', async () => {
 });
 
 runTest('rejects weak passwords', async () => {
-  const response = await postJson('/auth/register', {
+  const client = createClient();
+  const response = await client.post('/auth/register', {
     username: 'weak_pass_user',
     email: 'weakpass@example.com',
     password: 'short1A',
@@ -310,7 +341,8 @@ runTest('rejects weak passwords', async () => {
 });
 
 runTest('rejects mismatched confirm password', async () => {
-  const response = await postJson('/auth/register', {
+  const client = createClient();
+  const response = await client.post('/auth/register', {
     username: 'mismatch_user',
     email: 'mismatch@example.com',
     password: 'StrongPass1',
