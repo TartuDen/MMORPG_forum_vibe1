@@ -68,7 +68,7 @@ export default function ForumPage() {
         </div>
         {isAdmin && (
           <div className="forum-admin-actions">
-            <button className="manage-btn" onClick={() => navigate(`/create-forum?gameId=${forum.game_id}`)}>
+            <button className="manage-btn" onClick={() => navigate(`/create-forum?mode=update&gameId=${forum.game_id}`)}>
               Manage Forum
             </button>
             <button className="delete-btn" onClick={handleDeleteForum}>

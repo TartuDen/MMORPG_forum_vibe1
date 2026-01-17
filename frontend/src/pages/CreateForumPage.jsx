@@ -4,6 +4,24 @@ import { forumsAPI } from '../services/api';
 import { useAuth } from '../services/authContext';
 import '../styles/create-forum.css';
 
+const AVAILABLE_TAGS = [
+  'mmorpg',
+  'mmo',
+  'pve',
+  'pvp',
+  'raid',
+  'sandbox',
+  'story',
+  'crafting',
+  'hardcore',
+  'casual',
+  'open-world',
+  'dungeon',
+  'solo',
+  'party',
+  'full-loot'
+];
+
 export default function CreateForumPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -15,7 +33,7 @@ export default function CreateForumPage() {
   const [gameForm, setGameForm] = useState({
     name: '',
     description: '',
-    tags: '',
+    tags: [],
     icon_url: '',
     website_url: ''
   });
@@ -23,7 +41,7 @@ export default function CreateForumPage() {
     id: '',
     name: '',
     description: '',
-    tags: '',
+    tags: [],
     icon_url: '',
     website_url: ''
   });
@@ -54,43 +72,32 @@ export default function CreateForumPage() {
       id: game.id,
       name: game.name || '',
       description: game.description || '',
-      tags: Array.isArray(game.tags) ? game.tags.join(', ') : '',
+      tags: Array.isArray(game.tags) ? game.tags : [],
       icon_url: game.icon_url || '',
       website_url: game.website_url || ''
     });
   }, [games, searchParams]);
 
-  const handleGameInputChange = (e) => {
+  const mode = searchParams.get('mode') || 'manage';
+  const showCreateGame = mode !== 'update';
+
+  const handleGameInputChange = (e, type) => {
     const { name, value } = e.target;
-    setGameForm(prev => ({
+    const setter = type === 'edit' ? setGameEdit : setGameForm;
+    setter(prev => ({
       ...prev,
       [name]: value
     }));
   };
 
-  const handleGameEditChange = (e) => {
-    const { name, value } = e.target;
-    setGameEdit(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSelectGameEdit = (e) => {
-    const gameId = parseInt(e.target.value, 10);
-    const game = games.find(item => item.id === gameId);
-    if (!game) {
-      setGameEdit({ id: '', name: '', description: '', tags: '', icon_url: '', website_url: '' });
-      return;
-    }
-
-    setGameEdit({
-      id: game.id,
-      name: game.name || '',
-      description: game.description || '',
-      tags: Array.isArray(game.tags) ? game.tags.join(', ') : '',
-      icon_url: game.icon_url || '',
-      website_url: game.website_url || ''
+  const toggleTag = (tag, type) => {
+    const setter = type === 'edit' ? setGameEdit : setGameForm;
+    setter(prev => {
+      const exists = prev.tags.includes(tag);
+      return {
+        ...prev,
+        tags: exists ? prev.tags.filter(item => item !== tag) : [...prev.tags, tag]
+      };
     });
   };
 
@@ -104,7 +111,7 @@ export default function CreateForumPage() {
       return;
     }
 
-    if (!gameForm.tags.trim()) {
+    if (gameForm.tags.length === 0) {
       setError('At least one tag is required');
       return;
     }
@@ -114,11 +121,11 @@ export default function CreateForumPage() {
       await forumsAPI.createGame({
         name: gameForm.name.trim(),
         description: gameForm.description.trim(),
-        tags: gameForm.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+        tags: gameForm.tags,
         icon_url: gameForm.icon_url.trim() || null,
         website_url: gameForm.website_url.trim() || null
       });
-      setGameForm({ name: '', description: '', tags: '', icon_url: '', website_url: '' });
+      setGameForm({ name: '', description: '', tags: [], icon_url: '', website_url: '' });
       await fetchGames();
       setSuccess('Game created successfully.');
     } catch (err) {
@@ -141,12 +148,17 @@ export default function CreateForumPage() {
       return;
     }
 
+    if (gameEdit.tags.length === 0) {
+      setError('At least one tag is required');
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await forumsAPI.updateGame(gameEdit.id, {
         name: gameEdit.name.trim(),
         description: gameEdit.description.trim(),
-        tags: gameEdit.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+        tags: gameEdit.tags,
         icon_url: gameEdit.icon_url.trim() || null,
         website_url: gameEdit.website_url.trim() || null
       });
@@ -156,7 +168,7 @@ export default function CreateForumPage() {
           id: updated.id,
           name: updated.name || '',
           description: updated.description || '',
-          tags: Array.isArray(updated.tags) ? updated.tags.join(', ') : '',
+          tags: Array.isArray(updated.tags) ? updated.tags : [],
           icon_url: updated.icon_url || '',
           website_url: updated.website_url || ''
         });
@@ -192,81 +204,85 @@ export default function CreateForumPage() {
       <div className="create-forum-wrapper">
         <button className="btn-back" onClick={() => navigate('/')}>Back to Forums</button>
 
-        <div className="create-forum-box">
-          <h2>Create New Game</h2>
+        {showCreateGame && (
+          <div className="create-forum-box">
+            <h2>Create New Game</h2>
 
-          {error && <div className="error-message">{error}</div>}
-          {success && <div className="success-message">{success}</div>}
+            {error && <div className="error-message">{error}</div>}
+            {success && <div className="success-message">{success}</div>}
 
-          <form onSubmit={handleCreateGame}>
-            <div className="form-group">
-              <label htmlFor="gameName">Game Name *</label>
-              <input
-                id="gameName"
-                name="name"
-                type="text"
-                value={gameForm.name}
-                onChange={handleGameInputChange}
-                placeholder="e.g., World of Warcraft"
-                required
-              />
-            </div>
+            <form onSubmit={handleCreateGame}>
+              <div className="form-group">
+                <label htmlFor="gameName">Game Name *</label>
+                <input
+                  id="gameName"
+                  name="name"
+                  type="text"
+                  value={gameForm.name}
+                  onChange={(e) => handleGameInputChange(e, 'create')}
+                  placeholder="e.g., World of Warcraft"
+                  required
+                />
+              </div>
 
-            <div className="form-group">
-              <label htmlFor="gameDescription">Description</label>
-              <textarea
-                id="gameDescription"
-                name="description"
-                value={gameForm.description}
-                onChange={handleGameInputChange}
-                placeholder="Short description"
-                rows="3"
-              />
-            </div>
+              <div className="form-group">
+                <label htmlFor="gameDescription">Description</label>
+                <textarea
+                  id="gameDescription"
+                  name="description"
+                  value={gameForm.description}
+                  onChange={(e) => handleGameInputChange(e, 'create')}
+                  placeholder="Short description"
+                  rows="3"
+                />
+              </div>
 
-            <div className="form-group">
-              <label htmlFor="gameTags">Tags *</label>
-              <input
-                id="gameTags"
-                name="tags"
-                type="text"
-                value={gameForm.tags}
-                onChange={handleGameInputChange}
-                placeholder="mmo, pvp, pve, sandbox"
-                required
-              />
-              <small className="form-hint">Comma-separated tags</small>
-            </div>
+              <div className="form-group">
+                <label>Tags *</label>
+                <div className="tag-grid">
+                  {AVAILABLE_TAGS.map((tag) => (
+                    <label key={tag} className="tag-option">
+                      <input
+                        type="checkbox"
+                        checked={gameForm.tags.includes(tag)}
+                        onChange={() => toggleTag(tag, 'create')}
+                      />
+                      <span>{tag}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
 
-            <div className="form-group">
-              <label htmlFor="gameIcon">Icon URL</label>
-              <input
-                id="gameIcon"
-                name="icon_url"
-                type="text"
-                value={gameForm.icon_url}
-                onChange={handleGameInputChange}
-                placeholder="https://..."
-              />
-            </div>
+              <div className="form-group">
+                <label htmlFor="gameIcon">Icon URL</label>
+                <input
+                  id="gameIcon"
+                  name="icon_url"
+                  type="text"
+                  value={gameForm.icon_url}
+                  onChange={(e) => handleGameInputChange(e, 'create')}
+                  placeholder="https://..."
+                />
+              </div>
 
-            <div className="form-group">
-              <label htmlFor="gameWebsite">Website URL</label>
-              <input
-                id="gameWebsite"
-                name="website_url"
-                type="text"
-                value={gameForm.website_url}
-                onChange={handleGameInputChange}
-                placeholder="https://..."
-              />
-            </div>
+              <div className="form-group">
+                <label htmlFor="gameWebsite">Website URL</label>
+                <input
+                  id="gameWebsite"
+                  name="website_url"
+                  type="text"
+                  value={gameForm.website_url}
+                  onChange={(e) => handleGameInputChange(e, 'create')}
+                  placeholder="https://..."
+                />
+              </div>
 
-            <button type="submit" className="submit-btn" disabled={loading}>
-              {loading ? 'Creating Game...' : 'Create Game'}
-            </button>
-          </form>
-        </div>
+              <button type="submit" className="submit-btn" disabled={loading}>
+                {loading ? 'Creating Game...' : 'Create Game'}
+              </button>
+            </form>
+          </div>
+        )}
 
         <div className="create-forum-box">
           <h2>Update Game</h2>
@@ -277,7 +293,26 @@ export default function CreateForumPage() {
           <form onSubmit={handleUpdateGame}>
             <div className="form-group">
               <label htmlFor="gameEditSelect">Select Game *</label>
-              <select id="gameEditSelect" onChange={handleSelectGameEdit} value={gameEdit.id}>
+              <select
+                id="gameEditSelect"
+                onChange={(e) => {
+                  const gameId = parseInt(e.target.value, 10);
+                  const game = games.find(item => item.id === gameId);
+                  if (!game) {
+                    setGameEdit({ id: '', name: '', description: '', tags: [], icon_url: '', website_url: '' });
+                    return;
+                  }
+                  setGameEdit({
+                    id: game.id,
+                    name: game.name || '',
+                    description: game.description || '',
+                    tags: Array.isArray(game.tags) ? game.tags : [],
+                    icon_url: game.icon_url || '',
+                    website_url: game.website_url || ''
+                  });
+                }}
+                value={gameEdit.id}
+              >
                 <option value="">-- Choose a game --</option>
                 {games.map(game => (
                   <option key={game.id} value={game.id}>
@@ -294,7 +329,7 @@ export default function CreateForumPage() {
                 name="name"
                 type="text"
                 value={gameEdit.name}
-                onChange={handleGameEditChange}
+                onChange={(e) => handleGameInputChange(e, 'edit')}
                 placeholder="Game name"
               />
             </div>
@@ -305,23 +340,26 @@ export default function CreateForumPage() {
                 id="gameEditDescription"
                 name="description"
                 value={gameEdit.description}
-                onChange={handleGameEditChange}
+                onChange={(e) => handleGameInputChange(e, 'edit')}
                 placeholder="Description"
                 rows="3"
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="gameEditTags">Tags</label>
-              <input
-                id="gameEditTags"
-                name="tags"
-                type="text"
-                value={gameEdit.tags}
-                onChange={handleGameEditChange}
-                placeholder="mmo, pvp, pve"
-              />
-              <small className="form-hint">Comma-separated tags</small>
+              <label>Tags *</label>
+              <div className="tag-grid">
+                {AVAILABLE_TAGS.map((tag) => (
+                  <label key={tag} className="tag-option">
+                    <input
+                      type="checkbox"
+                      checked={gameEdit.tags.includes(tag)}
+                      onChange={() => toggleTag(tag, 'edit')}
+                    />
+                    <span>{tag}</span>
+                  </label>
+                ))}
+              </div>
             </div>
 
             <div className="form-group">
@@ -331,7 +369,7 @@ export default function CreateForumPage() {
                 name="icon_url"
                 type="text"
                 value={gameEdit.icon_url}
-                onChange={handleGameEditChange}
+                onChange={(e) => handleGameInputChange(e, 'edit')}
                 placeholder="https://..."
               />
             </div>
@@ -343,7 +381,7 @@ export default function CreateForumPage() {
                 name="website_url"
                 type="text"
                 value={gameEdit.website_url}
-                onChange={handleGameEditChange}
+                onChange={(e) => handleGameInputChange(e, 'edit')}
                 placeholder="https://..."
               />
             </div>

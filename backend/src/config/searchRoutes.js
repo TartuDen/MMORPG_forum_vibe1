@@ -1,5 +1,5 @@
 import express from 'express';
-import { searchThreads, searchComments, searchUsers } from '../modules/search.js';
+import { searchThreads, searchComments, searchUsers, searchForums } from '../modules/search.js';
 
 const router = express.Router();
 
@@ -79,6 +79,34 @@ router.get('/users', async (req, res, next) => {
     }
 
     const { results, pagination } = await searchUsers(
+      q,
+      parseInt(page),
+      parseInt(limit)
+    );
+
+    res.status(200).json({
+      data: results,
+      pagination,
+      message: 'Search results'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Search forums
+router.get('/forums', async (req, res, next) => {
+  try {
+    const { q, page = 1, limit = 10 } = req.query;
+
+    if (!q || q.trim().length === 0) {
+      return res.status(400).json({
+        error: 'Search query required',
+        code: 'MISSING_QUERY'
+      });
+    }
+
+    const { results, pagination } = await searchForums(
       q,
       parseInt(page),
       parseInt(limit)

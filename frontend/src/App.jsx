@@ -9,6 +9,7 @@ import ThreadPage from './pages/ThreadPage';
 import CreateThreadPage from './pages/CreateThreadPage';
 import CreateForumPage from './pages/CreateForumPage';
 import UserProfilePage from './pages/UserProfilePage';
+import SearchPage from './pages/SearchPage';
 import './App.css';
 
 function ProtectedRoute({ children, isAuthenticated, loading }) {
@@ -40,6 +41,7 @@ function AppContent() {
         />
         <Route path="/forums/:forumId" element={<ForumPage />} />
         <Route path="/forums/:forumId/threads/:threadId" element={<ThreadPage />} />
+        <Route path="/search" element={<SearchPage />} />
         <Route path="/user/:userId" element={<UserProfilePage />} />
         <Route
           path="/create-forum"
