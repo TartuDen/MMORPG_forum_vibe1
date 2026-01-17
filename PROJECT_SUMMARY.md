@@ -1,11 +1,19 @@
-# MMORPG Forum Project - Development Summary
+# MMORPG Forum Project Summary
 
 **Date Created:** January 16, 2026  
 **GitHub Repository:** https://github.com/TartuDen/MMORPG_forum_vibe1
 
 ---
 
-## 📋 PROJECT OVERVIEW
+## Snapshot
+- Full-stack forum (React + Vite frontend, Node/Express backend, Postgres DB).
+- Authentication: JWT access + refresh tokens, login via email OR username, register via email.
+- Roles: admin/moderator/user; admin-only actions enforced in backend and UI.
+- Demo seed: games, forums, admin user (pomogA/Plot123123), regular user (pomogB/Plot123123).
+
+---
+
+## Project Overview
 
 A full-stack MMO/RPG Game Community Forum application with user authentication, forum management, threading system, and user profiles.
 
@@ -17,133 +25,194 @@ A full-stack MMO/RPG Game Community Forum application with user authentication, 
 
 ---
 
-## ✅ COMPLETED FEATURES
+## Core Features Implemented
 
 ### Authentication & Users
-- ✅ User registration with password validation (8+ chars, uppercase, lowercase, number)
-- ✅ User login with JWT access cookie + refresh token rotation
-- ✅ Token refresh mechanism (1hr access, 7-day refresh) using HttpOnly cookies
-- ✅ CSRF protection for state-changing requests
-- ✅ Logout endpoint clears auth cookies
-- ✅ Protected routes (ProtectedRoute wrapper)
-- ✅ User profiles with stats (total posts, threads, reputation, member since)
-- ✅ Clickable usernames throughout the app (forums, threads, comments)
-- ✅ Avatar upload (stored in DB as data URL, max 100KB)
-- ✅ Security hardening (headers, origin checks, rate limits, account lockout, JWT issuer/audience)
+- User registration with password validation (8+ chars, uppercase, lowercase, number)
+- User login with JWT access cookie + refresh token rotation
+- Token refresh mechanism (1hr access, 7-day refresh) using HttpOnly cookies
+- CSRF protection for state-changing requests
+- Logout endpoint clears auth cookies
+- Protected routes (ProtectedRoute wrapper)
+- User profiles with stats (total posts, threads, reputation, member since)
+- Clickable usernames throughout the app (forums, threads, comments)
+- Avatar upload (stored in DB as data URL, max 100KB)
+- Security hardening (headers, origin checks, rate limits, account lockout, JWT issuer/audience)
 
 ### Forum Management
-- ✅ Browse all forums
-- ✅ **Users can create new forums** (select game, name, description)
-- ✅ Create threads in forums
-- ✅ Edit/delete threads (owner only)
-- ✅ Pinned threads support
-- ✅ Thread view counter
+- Browse all forums
+- Admin-only forum creation/deletion
+- Game management (admin): create/update/delete games; tags are required; default forum auto-created
+- Create threads in forums
+- Edit/delete threads (owner only)
+- Pinned threads support
+- Thread view counter
 
 ### Comments & Discussions
-- ✅ Post comments on threads
-- ✅ Edit comments (owner only)
-- ✅ Delete comments (soft delete)
-- ✅ Comment counter on threads
+- Post comments on threads
+- Edit comments (owner only)
+- Delete comments (soft delete)
+- Comment counter on threads
 
 ### Search Functionality
-- ✅ Full-text search on threads, comments, users
-- ✅ Tabbed results display
-- ✅ Search pagination (20 items per tab)
-- ✅ Integrated search bar in navbar
+- Full-text search on threads, comments, users, forums
+- Tabbed results display
+- Search pagination (20 items per tab)
+- Integrated search bar in navbar
+- Auto-select Forums tab when only forums match
+- Query examples: `aion`, `pvp`, `pomogA`, `general discussion`
 
 ### UI/UX
-- ✅ Professional CSS styling with color variables
-- ✅ Responsive design (mobile-friendly)
-- ✅ Form validation with error messages
-- ✅ Character counters on forms
-- ✅ Loading states and error handling
-- ✅ Navbar with logo, search, auth buttons
-- ✅ Direct messages UI with realtime updates
+- Professional CSS styling with color variables
+- Responsive design (mobile-friendly)
+- Form validation with error messages
+- Character counters on forms
+- Loading states and error handling
+- Navbar with logo, search, auth buttons
+- Direct messages UI with realtime updates
+- Home: Game hub cards + single "General Discussion" hero card
+- Forum page: game banner with icon, admin buttons (Manage Forum, Delete Forum)
+- Thread page: admin can delete; shows avatar badge + thread image
+- Create Thread: optional image upload, stays on new thread after create
+- Create/Manage Games: checkbox tag selection, update form
 
 ### Messaging
-- ✅ Direct messages (1:1) with conversation list
-- ✅ Message search by username and "Message" from user profile
-- ✅ Realtime delivery via Socket.io (with token auth)
-- ✅ Unread counts and read receipts (per-conversation)
+- Direct messages (1:1) with conversation list
+- Message search by username and "Message" from user profile
+- Realtime delivery via Socket.io (with token auth)
+- Unread counts and read receipts (per-conversation)
+
+### Moderation
+- Ban/unban users, promote role; moderation_log entries recorded
+- Admin can delete threads, comments, forums, and games
 
 ---
 
-## 📁 PROJECT STRUCTURE
+## Images
+- Avatars: upload as base64 data URL, max 100KB; stored in users.avatar_url
+- Thread images: upload as base64 data URL, max 300KB; stored in threads.image_url
+- Game icons: icon_url used as background on game cards and forum header banner
+- Express body size limit increased to 512KB; oversized payload returns 413
+
+---
+
+## Deployment Considerations
+- DB: PostgreSQL via pg client; pgAdmin optional for viewing tables
+- Rate limiting (in-memory): general (120/min), auth (20/min), write (40/min)
+- In-memory GET cache (short TTL): forums, games, search, user endpoints
+- Limit enforcement: max limit=50 for list/search endpoints
+
+---
+
+## Environment Vars
+- Backend .env: DB_HOST/PORT/NAME/USER/PASSWORD, PORT, NODE_ENV, JWT_SECRET, JWT_REFRESH_SECRET, SUPPORT_EMAIL
+- Frontend .env: VITE_API_BASE_URL, VITE_SOCKET_IO_URL
+
+---
+
+## Schema Changes
+- users.avatar_url
+- users.is_banned/banned_at/banned_reason
+- threads.image_url
+- games.tags (TEXT[])
+- games.auto_forum_enabled
+
+---
+
+## Migrations
+- backend/migrations/001_add_user_ban_and_fk_restrict.sql (ban fields + FK restrict)
+- init.js also applies "ALTER TABLE ... ADD COLUMN IF NOT EXISTS" for new columns
+
+---
+
+## Tests
+- `backend/tests/auth.test.js` covers registration, login (email/username), admin game CRUD, role updates, ban, user actions, admin-only thread deletion
+- Run: `npm test` in backend
+
+---
+
+## Known Behavior
+- Errors for negative tests show in console (expected)
+- Image uploads are base64 stored in DB (ok for demo, not ideal for production)
+
+---
+
+## Project Structure
 
 ```
 MMORPG_forum_vibe1/
-├── backend/
-│   ├── src/
-│   │   ├── server.js                 # Express server entry point
-│   │   ├── app.js                    # Express app & middleware setup
-│   │   ├── db/
-│   │   │   ├── connection.js         # PostgreSQL connection pool
-│   │   │   └── init.js               # Database schema initialization
-│   │   ├── middleware/
-│   │   │   ├── auth.js               # JWT authentication middleware
-│   │   │   └── errors.js             # Global error handler
-│   │   ├── utils/
-│   │   │   ├── jwt.js                # Token generation & verification
-│   │   │   ├── password.js           # Password hashing utilities
-│   │   │   └── validators.js         # Input validation
-│   │   ├── modules/
-│   │   │   ├── users.js              # User registration, login, profile
-│   │   │   ├── forums.js             # Forum CRUD operations
-│   │   │   ├── threads.js            # Thread CRUD with view count
-│   │   │   ├── comments.js           # Comment CRUD with soft delete
-│   │   │   └── search.js             # Full-text search operations
-│   │   └── config/
-│   │       ├── authRoutes.js         # Auth endpoints (/register, /login, /me, /refresh, /logout)
-│   │       ├── userRoutes.js         # User endpoints (GET /users/:id, /users)
-│   │       ├── forumRoutes.js        # Forum, thread, comment endpoints
-│   │       └── searchRoutes.js       # Search endpoints
-│   ├── .env                          # Environment variables (CREATE THIS)
-│   ├── .env.example                  # Example env file
-│   ├── package.json
-│   └── seed.js                       # Database seeding script
-│
-├── frontend/
-│   ├── src/
-│   │   ├── App.jsx                   # Main routing component
-│   │   ├── services/
-│   │   │   ├── api.js                # Axios client & API endpoints
-│   │   │   └── authContext.jsx       # Auth state management (useAuth hook)
-│   │   ├── components/
-│   │   │   ├── Navbar.jsx            # Navigation bar with search
-│   │   │   └── Comment.jsx           # Comment display & editing
-│   │   ├── pages/
-│   │   │   ├── HomePage.jsx          # Forum listing (with Create Forum button)
-│   │   │   ├── LoginPage.jsx         # Login form
-│   │   │   ├── RegisterPage.jsx      # Registration form
-│   │   │   ├── ForumPage.jsx         # Forum with threads
-│   │   │   ├── ThreadPage.jsx        # Thread with comments
-│   │   │   ├── CreateThreadPage.jsx  # Create thread form
-│   │   │   ├── CreateForumPage.jsx   # Create forum form
-│   │   │   ├── UserProfilePage.jsx   # User profile display
-│   │   │   └── SearchPage.jsx        # Search results (tabbed)
-│   │   └── styles/
-│   │       ├── index.css             # Global styles & CSS variables
-│   │       ├── navbar.css            # Navbar styling
-│   │       ├── auth.css              # Auth pages styling
-│   │       ├── home.css              # Forum list styling
-│   │       ├── forum.css             # Forum page styling
-│   │       ├── thread.css            # Thread page styling
-│   │       ├── comment.css           # Comment component styling
-│   │       ├── create-thread.css     # Create thread form styling
-│   │       ├── create-forum.css      # Create forum form styling
-│   │       ├── user-profile.css      # User profile styling
-│   │       └── search.css            # Search results styling
-│   ├── .env                          # Environment variables (CREATE THIS)
-│   ├── .env.example
-│   ├── vite.config.js
-│   └── package.json
-│
-└── README.md
++-- backend/
+�   +-- src/
+�   �   +-- server.js                 # Express server entry point
+�   �   +-- app.js                    # Express app & middleware setup
+�   �   +-- db/
+�   �   �   +-- connection.js         # PostgreSQL connection pool
+�   �   �   +-- init.js               # Database schema initialization
+�   �   +-- middleware/
+�   �   �   +-- auth.js               # JWT authentication middleware
+�   �   �   +-- errors.js             # Global error handler
+�   �   +-- utils/
+�   �   �   +-- jwt.js                # Token generation & verification
+�   �   �   +-- password.js           # Password hashing utilities
+�   �   �   +-- validators.js         # Input validation
+�   �   +-- modules/
+�   �   �   +-- users.js              # User registration, login, profile
+�   �   �   +-- forums.js             # Forum CRUD operations
+�   �   �   +-- threads.js            # Thread CRUD with view count
+�   �   �   +-- comments.js           # Comment CRUD with soft delete
+�   �   �   +-- search.js             # Full-text search operations
+�   �   +-- config/
+�   �       +-- authRoutes.js         # Auth endpoints (/register, /login, /me, /refresh, /logout)
+�   �       +-- userRoutes.js         # User endpoints (GET /users/:id, /users)
+�   �       +-- forumRoutes.js        # Forum, thread, comment endpoints
+�   �       +-- searchRoutes.js       # Search endpoints
+�   +-- .env                          # Environment variables (CREATE THIS)
+�   +-- .env.example                  # Example env file
+�   +-- package.json
+�   +-- seed.js                       # Database seeding script
+�
++-- frontend/
+�   +-- src/
+�   �   +-- App.jsx                   # Main routing component
+�   �   +-- services/
+�   �   �   +-- api.js                # Axios client & API endpoints
+�   �   �   +-- authContext.jsx       # Auth state management (useAuth hook)
+�   �   +-- components/
+�   �   �   +-- Navbar.jsx            # Navigation bar with search
+�   �   �   +-- Comment.jsx           # Comment display & editing
+�   �   +-- pages/
+�   �   �   +-- HomePage.jsx          # Forum listing (with Create Forum button)
+�   �   �   +-- LoginPage.jsx         # Login form
+�   �   �   +-- RegisterPage.jsx      # Registration form
+�   �   �   +-- ForumPage.jsx         # Forum with threads
+�   �   �   +-- ThreadPage.jsx        # Thread with comments
+�   �   �   +-- CreateThreadPage.jsx  # Create thread form
+�   �   �   +-- CreateForumPage.jsx   # Create forum form
+�   �   �   +-- UserProfilePage.jsx   # User profile display
+�   �   �   +-- SearchPage.jsx        # Search results (tabbed)
+�   �   +-- styles/
+�   �       +-- index.css             # Global styles & CSS variables
+�   �       +-- navbar.css            # Navbar styling
+�   �       +-- auth.css              # Auth pages styling
+�   �       +-- home.css              # Forum list styling
+�   �       +-- forum.css             # Forum page styling
+�   �       +-- thread.css            # Thread page styling
+�   �       +-- comment.css           # Comment component styling
+�   �       +-- create-thread.css     # Create thread form styling
+�   �       +-- create-forum.css      # Create forum form styling
+�   �       +-- user-profile.css      # User profile styling
+�   �       +-- search.css            # Search results styling
+�   +-- .env                          # Environment variables (CREATE THIS)
+�   +-- .env.example
+�   +-- vite.config.js
+�   +-- package.json
+�
++-- README.md
 ```
 
 ---
 
-## 🗄️ DATABASE SCHEMA
+## Database Schema
 
 ### users
 ```sql
@@ -163,7 +232,7 @@ id, game_id (FK), name, description, display_order, is_locked, created_at
 
 ### threads
 ```sql
-id, forum_id (FK), user_id (FK), title, content, view_count, comment_count, 
+id, forum_id (FK), user_id (FK), title, content, view_count, comment_count,
 is_pinned, created_at, updated_at
 ```
 
@@ -199,7 +268,7 @@ id, conversation_id (FK), sender_id (FK), body, created_at
 
 ---
 
-## 🔑 API ENDPOINTS
+## API Endpoints
 
 ### Authentication (`/api/auth`)
 - `POST /register` - User registration
@@ -217,7 +286,7 @@ id, conversation_id (FK), sender_id (FK), body, created_at
 ### Forums (`/api/forums`)
 - `GET /` - List all forums
 - `GET /games/all` - List all games
-- `POST /create` - Create new forum (auth required)
+- `POST /create` - Create new forum (admin required)
 - `GET /:forumId` - Get forum with threads
 - `POST /:forumId/threads` - Create thread (auth required)
 - `GET /:forumId/threads/:threadId` - Get thread with comments
@@ -231,6 +300,7 @@ id, conversation_id (FK), sender_id (FK), body, created_at
 - `GET /threads?q=query` - Search threads (full-text)
 - `GET /comments?q=query` - Search comments
 - `GET /users?q=query` - Search users
+- `GET /forums?q=query` - Search forums
 
 ### Messages (`/api/messages`)
 - `GET /conversations` - List conversations
@@ -241,7 +311,7 @@ id, conversation_id (FK), sender_id (FK), body, created_at
 
 ---
 
-## 🚀 SETUP INSTRUCTIONS FOR HOME PC
+## Setup Instructions (Local)
 
 ### Prerequisites
 - Node.js 18+ installed
@@ -320,11 +390,11 @@ id, conversation_id (FK), sender_id (FK), body, created_at
 7. **Open Application:**
    - Go to `http://localhost:5173` in browser
    - Register a new account
-   - Create forums, threads, and participate!
+   - Create forums, threads, and participate
 
 ---
 
-## 📝 COMMON DEVELOPMENT TASKS
+## Common Development Tasks
 
 ### Adding a New Page
 1. Create component in `frontend/src/pages/NewPage.jsx`
@@ -348,7 +418,7 @@ id, conversation_id (FK), sender_id (FK), body, created_at
 
 ---
 
-## 🔐 Security Notes
+## Security Notes
 
 - Passwords are hashed with bcryptjs (10 salt rounds)
 - Tokens stored in HttpOnly cookies, refresh tokens rotated server-side
@@ -359,23 +429,27 @@ id, conversation_id (FK), sender_id (FK), body, created_at
 
 ---
 
-## 🎯 NEXT FEATURES TO BUILD (Not Yet Implemented)
+## Next Features To Build
 
-1. **Reputation System** - Upvote/downvote threads & comments
-2. **Categories/Tags** - Organize forums with categories
-3. **Real-time Notifications** - Forum reply notifications
-4. **Admin Dashboard** - Moderation tools
-5. **User Roles** - Admin, moderator, member permissions
-6. **Rich Text Editor** - WYSIWYG for threads/comments
-7. **Message Attachments** - File/image sharing in DMs
-8. **Mobile PWA** - Progressive Web App
+1. Reputation system - Upvote/downvote threads & comments
+2. Categories/tags - Organize forums with categories
+3. Real-time notifications - Forum reply notifications
+4. Admin dashboard - Moderation tools
+5. User roles - Admin, moderator, member permissions
+6. Rich text editor - WYSIWYG for threads/comments
+7. Message attachments - File/image sharing in DMs
+8. Mobile PWA - Progressive Web App
+9. Migrate image storage to object storage (S3/Cloudinary)
+10. Persistent cache/ratelimits using Redis
+11. Add dedicated "Manage Forum" panel (per-forum settings)
+12. Add search filters in UI (tags, game, author)
 
 ---
 
-## 🐛 TROUBLESHOOTING
+## Troubleshooting
 
 ### Tests may hang
-- `npm test` can hang after the auth/cookie changes; investigate open handles before running.
+- `npm test` can hang after the auth/cookie changes; investigate open handles before running
 
 ### Port 5000 already in use
 ```bash
@@ -400,7 +474,7 @@ taskkill /PID <PID> /F
 
 ---
 
-## 📊 GIT WORKFLOW
+## Git Workflow
 
 ```bash
 # Check status
@@ -421,7 +495,7 @@ git pull origin main
 
 ---
 
-## 👤 GITHUB ACCOUNT
+## GitHub Account
 
 - **Repository:** https://github.com/TartuDen/MMORPG_forum_vibe1
 - **Username:** TartuDen
@@ -431,15 +505,3 @@ git pull origin main
 
 **Last Updated:** January 17, 2026  
 **Status:** MVP Complete - Forums, threads, comments, profiles, avatars, search, direct messages
-
-
-
-
-
-
-
-
-
-
-
-
