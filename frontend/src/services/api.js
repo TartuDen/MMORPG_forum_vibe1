@@ -80,6 +80,12 @@ export const forumsAPI = {
     apiClient.get(`/forums/${forumId}?page=${page}&limit=${limit}`),
   getGames: () =>
     apiClient.get('/forums/games/all'),
+  createGame: (payload) =>
+    apiClient.post('/forums/games', payload),
+  updateGame: (gameId, payload) =>
+    apiClient.put(`/forums/games/${gameId}`, payload),
+  deleteForum: (forumId) =>
+    apiClient.delete(`/forums/${forumId}`),
   createForum: (gameId, name, description) =>
     apiClient.post('/forums/create', { gameId, name, description })
 };

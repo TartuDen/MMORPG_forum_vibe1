@@ -18,3 +18,20 @@ body {
 * {
   box-sizing: border-box;
 }
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.role-badge.admin {
+  background: #fff7ed;
+  color: #9a3412;
+  border: 1px solid #fdba74;
+}

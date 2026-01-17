@@ -1,7 +1,7 @@
 import express from 'express';
 import pool from '../db/connection.js';
 import { authenticate, authorize } from '../middleware/auth.js';
-import { banUser, unbanUser } from '../modules/users.js';
+import { banUser, unbanUser, updateUserRole } from '../modules/users.js';
 
 const router = express.Router();
 
@@ -98,6 +98,26 @@ router.post('/:id/unban', authenticate, authorize('admin'), async (req, res, nex
       data: result,
       message: 'User unbanned'
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update user role (admin only)
+router.put('/:id/role', authenticate, authorize('admin'), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+    const userId = parseInt(id, 10);
+    if (Number.isNaN(userId)) {
+      return res.status(400).json({ error: 'Invalid user id', code: 'INVALID_USER_ID' });
+    }
+    if (!role) {
+      return res.status(400).json({ error: 'Role is required', code: 'MISSING_ROLE' });
+    }
+
+    const updated = await updateUserRole(userId, role, req.userId);
+    res.status(200).json({ data: updated, message: 'User role updated' });
   } catch (error) {
     next(error);
   }

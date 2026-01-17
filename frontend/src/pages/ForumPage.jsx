@@ -7,7 +7,7 @@ import '../styles/forum.css';
 export default function ForumPage() {
   const { forumId } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [forum, setForum] = useState(null);
   const [threads, setThreads] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 10 });
@@ -40,12 +40,29 @@ export default function ForumPage() {
   if (error) return <div className="container"><p className="error-message">{error}</p></div>;
   if (!forum) return <div className="container"><p>Forum not found</p></div>;
 
+  const isAdmin = isAuthenticated && user?.role === 'admin';
+
+  const handleDeleteForum = async () => {
+    if (!window.confirm('Delete this forum and all its threads?')) return;
+    try {
+      await forumsAPI.deleteForum(forumId);
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to delete forum');
+    }
+  };
+
   return (
     <div className="container">
       <div className="forum-header">
-        <button className="back-btn" onClick={() => navigate('/')}>← Back to Forums</button>
+        <button className="back-btn" onClick={() => navigate('/')}>Back to Forums</button>
         <h2>{forum.name}</h2>
         <p>{forum.description}</p>
+        {isAdmin && (
+          <button className="delete-btn" onClick={handleDeleteForum}>
+            Delete Forum
+          </button>
+        )}
       </div>
 
       {isAuthenticated && (
@@ -81,11 +98,11 @@ export default function ForumPage() {
                   onClick={() => navigate(`/forums/${forumId}/threads/${thread.id}`)}
                 >
                   <td className="thread-title">
-                    {thread.is_pinned && <span className="pinned-badge">📌</span>}
+                    {thread.is_pinned && <span className="pinned-badge">dY"O</span>}
                     {thread.title}
                   </td>
                   <td className="thread-author">
-                    <span 
+                    <span
                       className="username-link"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -94,6 +111,9 @@ export default function ForumPage() {
                     >
                       {thread.author_username}
                     </span>
+                    {thread.author_role === 'admin' && (
+                      <span className="role-badge admin">Admin</span>
+                    )}
                   </td>
                   <td className="thread-replies">{thread.comment_count}</td>
                   <td className="thread-views">{thread.view_count}</td>

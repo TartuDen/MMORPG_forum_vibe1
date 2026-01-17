@@ -73,10 +73,15 @@ export const initializeDatabase = async () => {
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) UNIQUE NOT NULL,
         description TEXT,
+        tags TEXT[] DEFAULT '{}',
         icon_url VARCHAR(500),
         website_url VARCHAR(500),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+    await pool.query(`
+      ALTER TABLE games
+        ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}';
     `);
 
     // Forums table
@@ -155,26 +160,48 @@ export const initializeDatabase = async () => {
     const gameCount = await pool.query('SELECT COUNT(*) as total FROM games');
     if (parseInt(gameCount.rows[0].total, 10) === 0) {
       await pool.query(`
-        INSERT INTO games (name, description, icon_url, website_url)
+        INSERT INTO games (name, description, tags, icon_url, website_url)
         VALUES
-          ('World of Warcraft', 'Epic MMORPG with raids, dungeons, and PvP', '', 'https://worldofwarcraft.com'),
-          ('Final Fantasy XIV', 'Story-driven MMORPG with deep crafting', '', 'https://www.finalfantasyxiv.com'),
-          ('Guild Wars 2', 'Action MMORPG with dynamic events', '', 'https://www.guildwars2.com'),
-          ('Elder Scrolls Online', 'Tamriel-wide MMORPG adventure', '', 'https://www.elderscrollsonline.com'),
-          ('Black Desert Online', 'Sandbox MMORPG with lifeskills', '', 'https://www.naeu.playblackdesert.com'),
-          ('Lost Ark', 'Isometric MMORPG with raids and islands', '', 'https://www.playlostark.com'),
-          ('RuneScape', 'Classic MMORPG with open progression', '', 'https://www.runescape.com'),
-          ('Old School RuneScape', 'Community-driven classic MMO', '', 'https://oldschool.runescape.com'),
-          ('Albion Online', 'Sandbox PvP-focused MMORPG', '', 'https://albiononline.com'),
-          ('New World', 'MMORPG set on the island of Aeternum', '', 'https://www.newworld.com'),
-          ('Star Wars: The Old Republic', 'Story MMO in the Star Wars universe', '', 'https://www.swtor.com'),
-          ('EVE Online', 'Space MMO with player-driven economy', '', 'https://www.eveonline.com'),
-          ('The Lord of the Rings Online', 'MMORPG set in Middle-earth', '', 'https://www.lotro.com'),
-          ('Phantasy Star Online 2', 'Sci-fi action MMORPG', '', 'https://pso2.com'),
-          ('Aion', 'Fantasy MMORPG with aerial combat', '', 'https://www.aiononline.com')
+          ('World of Warcraft', 'Epic MMORPG with raids, dungeons, and PvP', ARRAY['mmorpg','pve','pvp','raid'], '', 'https://worldofwarcraft.com'),
+          ('Final Fantasy XIV', 'Story-driven MMORPG with deep crafting', ARRAY['mmorpg','pve','story','raid'], '', 'https://www.finalfantasyxiv.com'),
+          ('Guild Wars 2', 'Action MMORPG with dynamic events', ARRAY['mmorpg','pve','pvp','wvw'], '', 'https://www.guildwars2.com'),
+          ('Elder Scrolls Online', 'Tamriel-wide MMORPG adventure', ARRAY['mmorpg','pve','pvp','story'], '', 'https://www.elderscrollsonline.com'),
+          ('Black Desert Online', 'Sandbox MMORPG with lifeskills', ARRAY['mmorpg','pvp','sandbox'], '', 'https://www.naeu.playblackdesert.com'),
+          ('Lost Ark', 'Isometric MMORPG with raids and islands', ARRAY['mmorpg','pve','raid'], '', 'https://www.playlostark.com'),
+          ('RuneScape', 'Classic MMORPG with open progression', ARRAY['mmorpg','sandbox','pve'], '', 'https://www.runescape.com'),
+          ('Old School RuneScape', 'Community-driven classic MMO', ARRAY['mmorpg','sandbox','pve'], '', 'https://oldschool.runescape.com'),
+          ('Albion Online', 'Sandbox PvP-focused MMORPG', ARRAY['mmorpg','pvp','sandbox','full-loot'], '', 'https://albiononline.com'),
+          ('New World', 'MMORPG set on the island of Aeternum', ARRAY['mmorpg','pvp','pve'], '', 'https://www.newworld.com'),
+          ('Star Wars: The Old Republic', 'Story MMO in the Star Wars universe', ARRAY['mmorpg','story','pve'], '', 'https://www.swtor.com'),
+          ('EVE Online', 'Space MMO with player-driven economy', ARRAY['mmorpg','pvp','sandbox','space'], '', 'https://www.eveonline.com'),
+          ('The Lord of the Rings Online', 'MMORPG set in Middle-earth', ARRAY['mmorpg','pve','story'], '', 'https://www.lotro.com'),
+          ('Phantasy Star Online 2', 'Sci-fi action MMORPG', ARRAY['mmorpg','pve','action'], '', 'https://pso2.com'),
+          ('Aion', 'Fantasy MMORPG with aerial combat', ARRAY['mmorpg','pvp','pve'], '', 'https://www.aiononline.com')
         ON CONFLICT (name) DO NOTHING
       `);
     }
+
+    await pool.query(`
+      INSERT INTO games (name, description, tags, icon_url, website_url)
+      VALUES ('Community', 'Site-wide general discussion', ARRAY['community','general'], '', '')
+      ON CONFLICT (name) DO NOTHING
+    `);
+
+    await pool.query(`
+      INSERT INTO forums (game_id, name, description)
+      SELECT g.id, 'General Discussion', 'Site-wide general discussion'
+      FROM games g
+      LEFT JOIN forums f ON f.game_id = g.id AND f.name = 'General Discussion'
+      WHERE g.name = 'Community' AND f.id IS NULL
+    `);
+
+    await pool.query(`
+      INSERT INTO forums (game_id, name, description)
+      SELECT g.id, 'General Discussion', 'General discussion for ' || g.name
+      FROM games g
+      LEFT JOIN forums f ON f.game_id = g.id
+      WHERE f.id IS NULL AND g.name <> 'Community'
+    `);
 
     // Seed default users in non-production environments
     if (process.env.NODE_ENV !== 'production') {

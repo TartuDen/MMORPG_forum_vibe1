@@ -45,16 +45,17 @@ router.post('/register', async (req, res, next) => {
 // Login
 router.post('/login', async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, username, password } = req.body;
+    const identifier = email || username;
 
-    if (!email || !password) {
+    if (!identifier || !password) {
       return res.status(400).json({
         error: 'Missing required fields',
         code: 'MISSING_FIELDS'
       });
     }
 
-    const user = await loginUser(email, password);
+    const user = await loginUser(identifier, password);
     const token = generateToken(user.id);
     const refreshToken = generateRefreshToken(user.id);
 

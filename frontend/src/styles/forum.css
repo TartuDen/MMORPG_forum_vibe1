@@ -93,6 +93,10 @@
   font-size: 0.9rem;
 }
 
+.thread-author .role-badge {
+  margin-left: 0.5rem;
+}
+
 .thread-replies,
 .thread-views {
   text-align: center;

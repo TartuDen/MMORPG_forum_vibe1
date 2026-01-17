@@ -10,6 +10,7 @@ export const getAllThreads = async (forumId, page = 1, limit = 10) => {
       t.created_at, t.updated_at,
       u.id as author_id,
       u.username as author_username,
+      u.role as author_role,
       u.profile_picture_url as author_picture
     FROM threads t
     JOIN users u ON t.user_id = u.id
@@ -41,7 +42,7 @@ export const getThreadById = async (threadId) => {
       t.id, t.forum_id, t.user_id, t.title, t.content, 
       t.view_count, t.comment_count, t.is_locked, t.is_pinned,
       t.created_at, t.updated_at,
-      u.id as author_id, u.username as author_username,
+      u.id as author_id, u.username as author_username, u.role as author_role,
       u.profile_picture_url as author_picture
     FROM threads t
     JOIN users u ON t.user_id = u.id
@@ -119,7 +120,7 @@ export const updateThread = async (threadId, userId, updates) => {
   return result.rows[0];
 };
 
-export const deleteThread = async (threadId, userId) => {
+export const deleteThread = async (threadId, userId, userRole) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -130,7 +131,7 @@ export const deleteThread = async (threadId, userId) => {
       throw { status: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' };
     }
 
-    if (threadResult.rows[0].user_id !== userId) {
+    if (userRole !== 'admin') {
       throw { status: 403, message: 'Not authorized to delete this thread', code: 'UNAUTHORIZED' };
     }
 

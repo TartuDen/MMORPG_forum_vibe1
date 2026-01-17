@@ -118,6 +118,15 @@
   margin-bottom: 1.5rem;
 }
 
+.success-message {
+  background-color: #ecfdf3;
+  border: 1px solid #bbf7d0;
+  border-radius: 4px;
+  color: #047857;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
 @media (max-width: 600px) {
   .create-forum-box {
     padding: 1.5rem;

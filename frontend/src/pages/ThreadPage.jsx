@@ -102,7 +102,10 @@ export default function ThreadPage() {
           <span>By <strong 
             className="username-link"
             onClick={() => navigate(`/user/${thread.user_id}`)}
-          >{thread.author_username}</strong></span>
+          >{thread.author_username}</strong>
+          {thread.author_role === 'admin' && (
+            <span className="role-badge admin">Admin</span>
+          )}</span>
           <span>Posted {new Date(thread.created_at).toLocaleDateString()}</span>
           <span>👁 {thread.view_count} views</span>
         </div>
