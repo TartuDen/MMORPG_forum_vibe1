@@ -123,7 +123,7 @@ export default function SearchPage() {
                     <div
                       key={comment.id}
                       className="result-item"
-                      onClick={() => navigate(`/forums/*/threads/${comment.thread_id}`)}
+                      onClick={() => navigate(`/forums/${comment.forum_id}/threads/${comment.thread_id}`)}
                     >
                       <p>{comment.content.substring(0, 200)}...</p>
                       <div className="result-meta">

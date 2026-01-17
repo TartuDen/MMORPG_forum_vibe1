@@ -47,7 +47,8 @@ export const searchComments = async (query, page = 1, limit = 10) => {
       c.id, c.thread_id, c.user_id, c.content,
       c.created_at, c.updated_at,
       u.username as author_username,
-      t.title as thread_title
+      t.title as thread_title,
+      t.forum_id as forum_id
     FROM comments c
     JOIN users u ON c.user_id = u.id
     JOIN threads t ON c.thread_id = t.id
@@ -81,7 +82,7 @@ export const searchUsers = async (query, page = 1, limit = 10) => {
 
   const searchQuery = `
     SELECT 
-      id, username, email, role, profile_picture_url, bio, total_posts, created_at
+      id, username, role, profile_picture_url, bio, total_posts, created_at
     FROM users
     WHERE username ILIKE $1 OR email ILIKE $1
     ORDER BY total_posts DESC

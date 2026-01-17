@@ -33,26 +33,37 @@ export const getThreadComments = async (threadId, page = 1, limit = 10) => {
 };
 
 export const createComment = async (threadId, userId, content) => {
-  // Verify thread exists
-  const threadResult = await pool.query('SELECT id FROM threads WHERE id = $1', [threadId]);
-  if (threadResult.rows.length === 0) {
-    throw { status: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' };
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Verify thread exists
+    const threadResult = await client.query('SELECT id FROM threads WHERE id = $1', [threadId]);
+    if (threadResult.rows.length === 0) {
+      throw { status: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' };
+    }
+
+    const result = await client.query(
+      `INSERT INTO comments (thread_id, user_id, content) 
+      VALUES ($1, $2, $3) 
+      RETURNING id, thread_id, user_id, content, is_edited, is_deleted, created_at, updated_at`,
+      [threadId, userId, content]
+    );
+
+    // Update thread comment_count
+    await client.query('UPDATE threads SET comment_count = comment_count + 1 WHERE id = $1', [threadId]);
+
+    // Update user's total_posts
+    await client.query('UPDATE users SET total_posts = total_posts + 1 WHERE id = $1', [userId]);
+
+    await client.query('COMMIT');
+    return result.rows[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
   }
-
-  const result = await pool.query(
-    `INSERT INTO comments (thread_id, user_id, content) 
-    VALUES ($1, $2, $3) 
-    RETURNING id, thread_id, user_id, content, is_edited, is_deleted, created_at, updated_at`,
-    [threadId, userId, content]
-  );
-
-  // Update thread comment_count
-  await pool.query('UPDATE threads SET comment_count = comment_count + 1 WHERE id = $1', [threadId]);
-
-  // Update user's total_posts
-  await pool.query('UPDATE users SET total_posts = total_posts + 1 WHERE id = $1', [userId]);
-
-  return result.rows[0];
 };
 
 export const updateComment = async (commentId, userId, content) => {
@@ -75,25 +86,36 @@ export const updateComment = async (commentId, userId, content) => {
 };
 
 export const deleteComment = async (commentId, userId) => {
-  // Verify ownership
-  const commentResult = await pool.query('SELECT user_id, thread_id FROM comments WHERE id = $1', [commentId]);
-  if (commentResult.rows.length === 0) {
-    throw { status: 404, message: 'Comment not found', code: 'COMMENT_NOT_FOUND' };
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Verify ownership
+    const commentResult = await client.query('SELECT user_id, thread_id FROM comments WHERE id = $1', [commentId]);
+    if (commentResult.rows.length === 0) {
+      throw { status: 404, message: 'Comment not found', code: 'COMMENT_NOT_FOUND' };
+    }
+
+    if (commentResult.rows[0].user_id !== userId) {
+      throw { status: 403, message: 'Not authorized to delete this comment', code: 'UNAUTHORIZED' };
+    }
+
+    // Soft delete comment
+    await client.query('UPDATE comments SET is_deleted = true WHERE id = $1', [commentId]);
+
+    // Decrement thread comment_count
+    const threadId = commentResult.rows[0].thread_id;
+    await client.query('UPDATE threads SET comment_count = GREATEST(0, comment_count - 1) WHERE id = $1', [threadId]);
+
+    // Decrement user's total_posts
+    await client.query('UPDATE users SET total_posts = GREATEST(0, total_posts - 1) WHERE id = $1', [userId]);
+
+    await client.query('COMMIT');
+    return { id: commentId };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
   }
-
-  if (commentResult.rows[0].user_id !== userId) {
-    throw { status: 403, message: 'Not authorized to delete this comment', code: 'UNAUTHORIZED' };
-  }
-
-  // Soft delete comment
-  await pool.query('UPDATE comments SET is_deleted = true WHERE id = $1', [commentId]);
-
-  // Decrement thread comment_count
-  const threadId = commentResult.rows[0].thread_id;
-  await pool.query('UPDATE threads SET comment_count = GREATEST(0, comment_count - 1) WHERE id = $1', [threadId]);
-
-  // Decrement user's total_posts
-  await pool.query('UPDATE users SET total_posts = GREATEST(0, total_posts - 1) WHERE id = $1', [userId]);
-
-  return { id: commentId };
 };

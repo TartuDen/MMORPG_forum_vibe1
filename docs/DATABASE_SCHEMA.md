@@ -15,6 +15,9 @@ CREATE TABLE users (
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   role VARCHAR(50) DEFAULT 'user' CHECK (role IN ('admin', 'moderator', 'user')),
+  is_banned BOOLEAN DEFAULT false,
+  banned_at TIMESTAMP,
+  banned_reason TEXT,
   profile_picture_url VARCHAR(500),
   bio TEXT,
   total_posts INTEGER DEFAULT 0,
@@ -32,6 +35,9 @@ CREATE INDEX idx_users_username ON users(username);
 - `email`: Unique email address
 - `password_hash`: Bcryptjs hashed password
 - `role`: User role (admin, moderator, user)
+- `is_banned`: Whether the account is banned
+- `banned_at`: Ban timestamp
+- `banned_reason`: Ban reason text
 - `profile_picture_url`: URL to user's profile picture
 - `bio`: User biography/about me text
 - `total_posts`: Cached count of user's posts
@@ -96,7 +102,7 @@ Stores discussion threads within forums.
 CREATE TABLE threads (
   id SERIAL PRIMARY KEY,
   forum_id INTEGER NOT NULL REFERENCES forums(id) ON DELETE CASCADE,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   title VARCHAR(500) NOT NULL,
   content TEXT NOT NULL,
   view_count INTEGER DEFAULT 0,
@@ -133,7 +139,7 @@ Stores replies to threads.
 CREATE TABLE comments (
   id SERIAL PRIMARY KEY,
   thread_id INTEGER NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   content TEXT NOT NULL,
   is_edited BOOLEAN DEFAULT false,
   is_deleted BOOLEAN DEFAULT false,
@@ -212,4 +218,5 @@ Users (1:M) Moderation Log (M:1)
 
 ## Migration Strategy
 
-Initialize all tables on first application startup using the schema definitions in `backend/src/config/database.js`.
+Initialize all tables on first application startup using the schema definitions in `backend/src/db/init.js`.
+Apply migration scripts from `backend/migrations` when upgrading an existing database.

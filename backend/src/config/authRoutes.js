@@ -2,6 +2,7 @@ import express from 'express';
 import { registerUser, loginUser, getUserById, updateUser } from '../modules/users.js';
 import { generateToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
 import { authenticate } from '../middleware/auth.js';
+import pool from '../db/connection.js';
 
 const router = express.Router();
 
@@ -64,7 +65,7 @@ router.post('/login', async (req, res, next) => {
 });
 
 // Refresh Token
-router.post('/refresh', (req, res, next) => {
+router.post('/refresh', async (req, res, next) => {
   try {
     const { refreshToken } = req.body;
 
@@ -80,6 +81,21 @@ router.post('/refresh', (req, res, next) => {
       return res.status(401).json({
         error: 'Invalid refresh token',
         code: 'INVALID_REFRESH_TOKEN'
+      });
+    }
+
+    const supportEmail = process.env.SUPPORT_EMAIL || 'support@example.com';
+    const bannedCheck = await pool.query('SELECT is_banned FROM users WHERE id = $1', [decoded.userId]);
+    if (bannedCheck.rows.length === 0) {
+      return res.status(401).json({
+        error: 'Invalid refresh token',
+        code: 'INVALID_REFRESH_TOKEN'
+      });
+    }
+    if (bannedCheck.rows[0].is_banned) {
+      return res.status(403).json({
+        error: `This user is banned. Please contact support at ${supportEmail}.`,
+        code: 'USER_BANNED'
       });
     }
 

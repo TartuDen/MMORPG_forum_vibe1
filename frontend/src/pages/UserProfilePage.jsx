@@ -65,7 +65,6 @@ export default function UserProfilePage() {
         </div>
         <div className="profile-info">
           <h1>{user.username}</h1>
-          <p className="profile-email">{user.email}</p>
           {user.bio && <p className="profile-bio">{user.bio}</p>}
           <p className="profile-meta">Member since {memberSince}</p>
         </div>

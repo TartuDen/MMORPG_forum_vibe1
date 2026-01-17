@@ -349,6 +349,49 @@ Response 200:
 }
 ```
 
+### Users
+
+#### Get User Profile
+```
+GET /users/:id
+
+Response 200:
+{
+  "data": {
+    "id": 1,
+    "username": "john_doe",
+    "role": "user",
+    "profile_picture_url": null,
+    "bio": "Raid leader",
+    "total_posts": 42,
+    "created_at": "2024-01-16T10:00:00Z"
+  },
+  "message": "User retrieved"
+}
+```
+
+#### Ban User (Admin Only)
+```
+POST /users/:id/ban
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "reason": "Repeated harassment"
+}
+```
+
+#### Unban User (Admin Only)
+```
+POST /users/:id/unban
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "reason": "Appeal accepted"
+}
+```
+
 ## Error Codes
 
 | Code | Status | Description |
@@ -358,4 +401,5 @@ Response 200:
 | UNAUTHORIZED | 403 | User not authorized for this action |
 | NOT_FOUND | 404 | Resource not found |
 | VALIDATION_ERROR | 400 | Input validation failed |
+| USER_BANNED | 403 | User is banned |
 | SERVER_ERROR | 500 | Internal server error |
