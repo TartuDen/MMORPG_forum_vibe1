@@ -2,12 +2,13 @@ import express from 'express';
 import { registerUser, loginUser, getUserById, updateUser } from '../modules/users.js';
 import { generateToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
 import { authenticate } from '../middleware/auth.js';
+import { authLimiter } from '../middleware/rateLimit.js';
 import pool from '../db/connection.js';
 
 const router = express.Router();
 
 // Register
-router.post('/register', async (req, res, next) => {
+router.post('/register', authLimiter, async (req, res, next) => {
   try {
     const { username, email, password, confirmPassword } = req.body;
 
@@ -43,7 +44,7 @@ router.post('/register', async (req, res, next) => {
 });
 
 // Login
-router.post('/login', async (req, res, next) => {
+router.post('/login', authLimiter, async (req, res, next) => {
   try {
     const { email, username, password } = req.body;
     const identifier = email || username;
@@ -131,7 +132,7 @@ router.get('/me', authenticate, async (req, res, next) => {
 });
 
 // Update user profile
-router.put('/me', authenticate, async (req, res, next) => {
+router.put('/me', authenticate, authLimiter, async (req, res, next) => {
   try {
     const { username, profile_picture_url, bio, avatar_url } = req.body;
     const user = await updateUser(req.userId, {

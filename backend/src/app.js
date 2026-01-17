@@ -7,6 +7,7 @@ import forumRoutes from './config/forumRoutes.js';
 import searchRoutes from './config/searchRoutes.js';
 import { errorHandler, notFound } from './middleware/errors.js';
 import { initializeDatabase } from './db/init.js';
+import { generalLimiter } from './middleware/rateLimit.js';
 
 dotenv.config();
 
@@ -28,6 +29,8 @@ const ensureDbInitialized = async (req, res, next) => {
 };
 
 app.use(ensureDbInitialized);
+
+app.use(generalLimiter);
 
 // Middleware
 app.use(cors({

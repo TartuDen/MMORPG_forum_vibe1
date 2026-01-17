@@ -5,11 +5,13 @@ import { getThreadComments, createComment, updateComment, deleteComment } from '
 import { authenticate, authorize } from '../middleware/auth.js';
 import pool from '../db/connection.js';
 import { parseImageDataUrl } from '../utils/validators.js';
+import { cacheResponse } from '../middleware/cache.js';
+import { writeLimiter } from '../middleware/rateLimit.js';
 
 const router = express.Router();
 
 // Get all games
-router.get('/games/all', async (req, res, next) => {
+router.get('/games/all', cacheResponse(60000), async (req, res, next) => {
   try {
     const result = await pool.query('SELECT id, name, description, tags, icon_url, website_url FROM games ORDER BY name');
     res.status(200).json({
@@ -22,7 +24,7 @@ router.get('/games/all', async (req, res, next) => {
 });
 
 // Create new forum
-router.post('/create', authenticate, authorize('admin'), async (req, res, next) => {
+router.post('/create', authenticate, authorize('admin'), writeLimiter, async (req, res, next) => {
   try {
     const { gameId, name, description } = req.body;
 
@@ -68,7 +70,7 @@ router.post('/create', authenticate, authorize('admin'), async (req, res, next) 
 });
 
 // Create new game (admin only)
-router.post('/games', authenticate, authorize('admin'), async (req, res, next) => {
+router.post('/games', authenticate, authorize('admin'), writeLimiter, async (req, res, next) => {
   try {
     const { name, description = '', tags, icon_url = null, website_url = null } = req.body;
 
@@ -98,7 +100,7 @@ router.post('/games', authenticate, authorize('admin'), async (req, res, next) =
 });
 
 // Update game (admin only)
-router.put('/games/:gameId', authenticate, authorize('admin'), async (req, res, next) => {
+router.put('/games/:gameId', authenticate, authorize('admin'), writeLimiter, async (req, res, next) => {
   try {
     const { gameId } = req.params;
     const gameIdValue = parseInt(gameId, 10);
@@ -122,7 +124,7 @@ router.put('/games/:gameId', authenticate, authorize('admin'), async (req, res, 
 });
 
 // Delete game (admin only)
-router.delete('/games/:gameId', authenticate, authorize('admin'), async (req, res, next) => {
+router.delete('/games/:gameId', authenticate, authorize('admin'), writeLimiter, async (req, res, next) => {
   try {
     const { gameId } = req.params;
     const gameIdValue = parseInt(gameId, 10);
@@ -141,7 +143,7 @@ router.delete('/games/:gameId', authenticate, authorize('admin'), async (req, re
 });
 
 // Delete forum (admin only)
-router.delete('/:forumId', authenticate, authorize('admin'), async (req, res, next) => {
+router.delete('/:forumId', authenticate, authorize('admin'), writeLimiter, async (req, res, next) => {
   try {
     const { forumId } = req.params;
     const forumIdValue = parseInt(forumId, 10);
@@ -160,7 +162,7 @@ router.delete('/:forumId', authenticate, authorize('admin'), async (req, res, ne
 });
 
 // Get all forums or forums by game
-router.get('/', async (req, res, next) => {
+router.get('/', cacheResponse(30000), async (req, res, next) => {
   try {
     const gameId = req.query.gameId ? parseInt(req.query.gameId) : null;
     const forums = await getAllForums(gameId);
@@ -174,11 +176,11 @@ router.get('/', async (req, res, next) => {
 });
 
 // Get forum by ID with threads
-router.get('/:forumId', async (req, res, next) => {
+router.get('/:forumId', cacheResponse(15000), async (req, res, next) => {
   try {
     const { forumId } = req.params;
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
 
     const forum = await getForumById(forumId);
     const { threads, pagination } = await getAllThreads(forumId, page, limit);
@@ -197,11 +199,11 @@ router.get('/:forumId', async (req, res, next) => {
 });
 
 // Get thread by ID with comments
-router.get('/:forumId/threads/:threadId', async (req, res, next) => {
+router.get('/:forumId/threads/:threadId', cacheResponse(15000), async (req, res, next) => {
   try {
     const { threadId } = req.params;
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
 
     const thread = await getThreadById(threadId);
     await incrementThreadViews(threadId);
@@ -222,7 +224,7 @@ router.get('/:forumId/threads/:threadId', async (req, res, next) => {
 });
 
 // Create thread
-router.post('/:forumId/threads', authenticate, async (req, res, next) => {
+router.post('/:forumId/threads', authenticate, writeLimiter, async (req, res, next) => {
   try {
     const { forumId } = req.params;
     const { title, content, image_url } = req.body;
@@ -253,7 +255,7 @@ router.post('/:forumId/threads', authenticate, async (req, res, next) => {
 });
 
 // Update thread
-router.put('/:forumId/threads/:threadId', authenticate, async (req, res, next) => {
+router.put('/:forumId/threads/:threadId', authenticate, writeLimiter, async (req, res, next) => {
   try {
     const { threadId } = req.params;
     const { title, content, is_locked, is_pinned } = req.body;
@@ -275,7 +277,7 @@ router.put('/:forumId/threads/:threadId', authenticate, async (req, res, next) =
 });
 
 // Delete thread
-router.delete('/:forumId/threads/:threadId', authenticate, async (req, res, next) => {
+router.delete('/:forumId/threads/:threadId', authenticate, writeLimiter, async (req, res, next) => {
   try {
     const { threadId } = req.params;
 
@@ -290,7 +292,7 @@ router.delete('/:forumId/threads/:threadId', authenticate, async (req, res, next
 });
 
 // Create comment
-router.post('/:forumId/threads/:threadId/comments', authenticate, async (req, res, next) => {
+router.post('/:forumId/threads/:threadId/comments', authenticate, writeLimiter, async (req, res, next) => {
   try {
     const { threadId } = req.params;
     const { content } = req.body;
@@ -314,7 +316,7 @@ router.post('/:forumId/threads/:threadId/comments', authenticate, async (req, re
 });
 
 // Update comment
-router.put('/:forumId/threads/:threadId/comments/:commentId', authenticate, async (req, res, next) => {
+router.put('/:forumId/threads/:threadId/comments/:commentId', authenticate, writeLimiter, async (req, res, next) => {
   try {
     const { commentId } = req.params;
     const { content } = req.body;
@@ -338,7 +340,7 @@ router.put('/:forumId/threads/:threadId/comments/:commentId', authenticate, asyn
 });
 
 // Delete comment
-router.delete('/:forumId/threads/:threadId/comments/:commentId', authenticate, async (req, res, next) => {
+router.delete('/:forumId/threads/:threadId/comments/:commentId', authenticate, writeLimiter, async (req, res, next) => {
   try {
     const { commentId } = req.params;
 

@@ -1,12 +1,14 @@
 import express from 'express';
 import { searchThreads, searchComments, searchUsers, searchForums } from '../modules/search.js';
+import { cacheResponse } from '../middleware/cache.js';
 
 const router = express.Router();
 
 // Search threads
-router.get('/threads', async (req, res, next) => {
+router.get('/threads', cacheResponse(15000), async (req, res, next) => {
   try {
     const { q, page = 1, limit = 10 } = req.query;
+    const safeLimit = Math.min(parseInt(limit) || 10, 50);
 
     if (!q || q.trim().length === 0) {
       return res.status(400).json({
@@ -25,7 +27,7 @@ router.get('/threads', async (req, res, next) => {
     const { results, pagination } = await searchThreads(
       q,
       parseInt(page),
-      parseInt(limit)
+      safeLimit
     );
 
     res.status(200).json({
@@ -39,9 +41,10 @@ router.get('/threads', async (req, res, next) => {
 });
 
 // Search comments
-router.get('/comments', async (req, res, next) => {
+router.get('/comments', cacheResponse(15000), async (req, res, next) => {
   try {
     const { q, page = 1, limit = 10 } = req.query;
+    const safeLimit = Math.min(parseInt(limit) || 10, 50);
 
     if (!q || q.trim().length === 0) {
       return res.status(400).json({
@@ -53,7 +56,7 @@ router.get('/comments', async (req, res, next) => {
     const { results, pagination } = await searchComments(
       q,
       parseInt(page),
-      parseInt(limit)
+      safeLimit
     );
 
     res.status(200).json({
@@ -67,9 +70,10 @@ router.get('/comments', async (req, res, next) => {
 });
 
 // Search users
-router.get('/users', async (req, res, next) => {
+router.get('/users', cacheResponse(15000), async (req, res, next) => {
   try {
     const { q, page = 1, limit = 10 } = req.query;
+    const safeLimit = Math.min(parseInt(limit) || 10, 50);
 
     if (!q || q.trim().length === 0) {
       return res.status(400).json({
@@ -81,7 +85,7 @@ router.get('/users', async (req, res, next) => {
     const { results, pagination } = await searchUsers(
       q,
       parseInt(page),
-      parseInt(limit)
+      safeLimit
     );
 
     res.status(200).json({
@@ -95,9 +99,10 @@ router.get('/users', async (req, res, next) => {
 });
 
 // Search forums
-router.get('/forums', async (req, res, next) => {
+router.get('/forums', cacheResponse(15000), async (req, res, next) => {
   try {
     const { q, page = 1, limit = 10 } = req.query;
+    const safeLimit = Math.min(parseInt(limit) || 10, 50);
 
     if (!q || q.trim().length === 0) {
       return res.status(400).json({
@@ -109,7 +114,7 @@ router.get('/forums', async (req, res, next) => {
     const { results, pagination } = await searchForums(
       q,
       parseInt(page),
-      parseInt(limit)
+      safeLimit
     );
 
     res.status(200).json({

@@ -2,11 +2,13 @@ import express from 'express';
 import pool from '../db/connection.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { banUser, unbanUser, updateUserRole } from '../modules/users.js';
+import { cacheResponse } from '../middleware/cache.js';
+import { writeLimiter } from '../middleware/rateLimit.js';
 
 const router = express.Router();
 
 // Get user by ID
-router.get('/:id', async (req, res, next) => {
+router.get('/:id', cacheResponse(30000), async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -32,10 +34,10 @@ router.get('/:id', async (req, res, next) => {
 });
 
 // Get all users (paginated)
-router.get('/', async (req, res, next) => {
+router.get('/', cacheResponse(30000), async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const offset = (page - 1) * limit;
 
     const result = await pool.query(
@@ -62,7 +64,7 @@ router.get('/', async (req, res, next) => {
 });
 
 // Ban user (admin only)
-router.post('/:id/ban', authenticate, authorize('admin'), async (req, res, next) => {
+router.post('/:id/ban', authenticate, authorize('admin'), writeLimiter, async (req, res, next) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
@@ -83,7 +85,7 @@ router.post('/:id/ban', authenticate, authorize('admin'), async (req, res, next)
 });
 
 // Unban user (admin only)
-router.post('/:id/unban', authenticate, authorize('admin'), async (req, res, next) => {
+router.post('/:id/unban', authenticate, authorize('admin'), writeLimiter, async (req, res, next) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
@@ -104,7 +106,7 @@ router.post('/:id/unban', authenticate, authorize('admin'), async (req, res, nex
 });
 
 // Update user role (admin only)
-router.put('/:id/role', authenticate, authorize('admin'), async (req, res, next) => {
+router.put('/:id/role', authenticate, authorize('admin'), writeLimiter, async (req, res, next) => {
   try {
     const { id } = req.params;
     const { role } = req.body;
