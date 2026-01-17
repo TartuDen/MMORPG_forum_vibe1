@@ -8,6 +8,7 @@ process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test_jwt_secret';
 process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'test_jwt_refresh_secret';
 process.env.SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@example.com';
+process.env.FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 process.env.DB_HOST = process.env.DB_HOST || 'localhost';
 process.env.DB_PORT = process.env.DB_PORT || '5432';
 process.env.DB_NAME = process.env.DB_NAME || 'mmorpg_forum';
@@ -125,6 +126,47 @@ runTest('registers a new user and logs in with email', async () => {
   const login = await client.post('/auth/login', { email, password });
   assert.equal(login.status, 200);
   assert.ok(login.body?.data?.user?.id);
+});
+
+runTest('sets basic security headers', async () => {
+  const response = await fetch(`${baseUrl}/health`);
+  assert.equal(response.status, 200);
+  const headers = response.headers;
+  assert.equal(headers.get('x-content-type-options'), 'nosniff');
+  assert.equal(headers.get('x-frame-options'), 'DENY');
+  assert.equal(headers.get('referrer-policy'), 'no-referrer');
+  assert.equal(headers.get('permissions-policy'), 'camera=(), microphone=(), geolocation=()');
+  assert.ok(headers.get('content-security-policy'));
+});
+
+runTest('adds CORS headers for allowed origins', async () => {
+  const response = await fetch(`${baseUrl}/health`, {
+    headers: { Origin: 'http://localhost:5173' }
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('access-control-allow-origin'), 'http://localhost:5173');
+  assert.equal(response.headers.get('access-control-allow-credentials'), 'true');
+});
+
+runTest('rejects disallowed origin for state-changing requests', async () => {
+  const response = await fetch(`${baseUrl}/auth/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Origin: 'http://evil.example.com'
+    },
+    body: JSON.stringify({
+      username: `evil_${Date.now()}`,
+      email: `evil_${Date.now()}@example.com`,
+      password: 'StrongPass1',
+      confirmPassword: 'StrongPass1'
+    })
+  });
+
+  assert.equal(response.status, 403);
+  const body = await response.json();
+  assert.equal(body?.code, 'ORIGIN_NOT_ALLOWED');
 });
 
 runTest('logs in with username', async () => {
@@ -351,6 +393,62 @@ runTest('rejects mismatched confirm password', async () => {
 
   assert.equal(response.status, 400);
   assert.equal(response.body?.code, 'PASSWORD_MISMATCH');
+});
+
+runTest('locks account after repeated failed logins', async () => {
+  const client = createClient();
+  const suffix = Date.now();
+  const username = `lockuser_${suffix}`.slice(0, 20);
+  const email = `lockuser_${suffix}@example.com`;
+  const password = 'StrongPass1';
+
+  const register = await client.post('/auth/register', {
+    username,
+    email,
+    password,
+    confirmPassword: password
+  });
+  assert.equal(register.status, 201);
+
+  for (let i = 0; i < 5; i++) {
+    const attempt = await client.post('/auth/login', {
+      email,
+      password: 'WrongPass1'
+    });
+    assert.equal(attempt.status, 401);
+  }
+
+  const locked = await client.post('/auth/login', { email, password });
+  assert.equal(locked.status, 403);
+  assert.equal(locked.body?.code, 'ACCOUNT_LOCKED');
+});
+
+runTest('rejects oversized thread content', async () => {
+  const client = createClient();
+  const suffix = Date.now();
+  const username = `longthread_${suffix}`.slice(0, 20);
+  const email = `longthread_${suffix}@example.com`;
+  const password = 'StrongPass1';
+
+  const register = await client.post('/auth/register', {
+    username,
+    email,
+    password,
+    confirmPassword: password
+  });
+  assert.equal(register.status, 201);
+
+  const forums = await client.get('/forums');
+  const forumId = forums.body?.data?.[0]?.id;
+  assert.ok(forumId);
+
+  const createThread = await client.post(`/forums/${forumId}/threads`, {
+    title: 'Oversized content',
+    content: 'a'.repeat(5001)
+  });
+
+  assert.equal(createThread.status, 400);
+  assert.equal(createThread.body?.code, 'CONTENT_TOO_LONG');
 });
 
 const run = async () => {

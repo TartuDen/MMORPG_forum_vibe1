@@ -9,6 +9,9 @@ import { cacheResponse } from '../middleware/cache.js';
 import { writeLimiter } from '../middleware/rateLimit.js';
 
 const router = express.Router();
+const MAX_THREAD_TITLE_LENGTH = 200;
+const MAX_THREAD_CONTENT_LENGTH = 5000;
+const MAX_COMMENT_LENGTH = 2000;
 
 // Get all games
 router.get('/games/all', cacheResponse(60000), async (req, res, next) => {
@@ -236,6 +239,20 @@ router.post('/:forumId/threads', authenticate, writeLimiter, async (req, res, ne
       });
     }
 
+    if (title.length > MAX_THREAD_TITLE_LENGTH) {
+      return res.status(400).json({
+        error: `Title must be ${MAX_THREAD_TITLE_LENGTH} characters or less`,
+        code: 'TITLE_TOO_LONG'
+      });
+    }
+
+    if (content.length > MAX_THREAD_CONTENT_LENGTH) {
+      return res.status(400).json({
+        error: `Content must be ${MAX_THREAD_CONTENT_LENGTH} characters or less`,
+        code: 'CONTENT_TOO_LONG'
+      });
+    }
+
     // Verify forum exists
     await getForumById(forumId);
 
@@ -259,6 +276,20 @@ router.put('/:forumId/threads/:threadId', authenticate, writeLimiter, async (req
   try {
     const { threadId } = req.params;
     const { title, content, is_locked, is_pinned } = req.body;
+
+    if (title && title.length > MAX_THREAD_TITLE_LENGTH) {
+      return res.status(400).json({
+        error: `Title must be ${MAX_THREAD_TITLE_LENGTH} characters or less`,
+        code: 'TITLE_TOO_LONG'
+      });
+    }
+
+    if (content && content.length > MAX_THREAD_CONTENT_LENGTH) {
+      return res.status(400).json({
+        error: `Content must be ${MAX_THREAD_CONTENT_LENGTH} characters or less`,
+        code: 'CONTENT_TOO_LONG'
+      });
+    }
 
     const thread = await updateThread(threadId, req.userId, {
       title,
@@ -304,6 +335,13 @@ router.post('/:forumId/threads/:threadId/comments', authenticate, writeLimiter, 
       });
     }
 
+    if (content.length > MAX_COMMENT_LENGTH) {
+      return res.status(400).json({
+        error: `Content must be ${MAX_COMMENT_LENGTH} characters or less`,
+        code: 'CONTENT_TOO_LONG'
+      });
+    }
+
     const comment = await createComment(threadId, req.userId, content);
 
     res.status(201).json({
@@ -325,6 +363,13 @@ router.put('/:forumId/threads/:threadId/comments/:commentId', authenticate, writ
       return res.status(400).json({
         error: 'Content is required',
         code: 'MISSING_FIELDS'
+      });
+    }
+
+    if (content.length > MAX_COMMENT_LENGTH) {
+      return res.status(400).json({
+        error: `Content must be ${MAX_COMMENT_LENGTH} characters or less`,
+        code: 'CONTENT_TOO_LONG'
       });
     }
 

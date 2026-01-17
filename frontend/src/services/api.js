@@ -37,8 +37,17 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const requestUrl = originalRequest?.url || '';
+    const isAuthCheck = requestUrl.includes('/auth/me');
+    const isAuthAction = requestUrl.includes('/auth/login')
+      || requestUrl.includes('/auth/register')
+      || requestUrl.includes('/auth/refresh')
+      || requestUrl.includes('/auth/logout');
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isAuthCheck || isAuthAction) {
+        return Promise.reject(error);
+      }
       originalRequest._retry = true;
 
       try {
@@ -53,7 +62,9 @@ apiClient.interceptors.response.use(
         );
         return apiClient(originalRequest);
       } catch (refreshError) {
-        window.location.href = '/login';
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
       }
     }
 
