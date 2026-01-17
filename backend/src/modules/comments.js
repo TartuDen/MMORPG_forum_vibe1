@@ -5,7 +5,7 @@ export const getThreadComments = async (threadId, page = 1, limit = 10, viewerId
 
   const query = `
     SELECT 
-      c.id, c.thread_id, c.user_id, c.content,
+      c.id, c.thread_id, c.user_id, c.parent_comment_id, c.content,
       c.is_edited, c.is_deleted, c.created_at, c.updated_at,
       u.username as author_username, u.profile_picture_url as author_picture, u.role as author_role, u.avatar_url as author_avatar_url,
       COALESCE((
@@ -42,7 +42,7 @@ export const getThreadComments = async (threadId, page = 1, limit = 10, viewerId
   };
 };
 
-export const createComment = async (threadId, userId, content) => {
+export const createComment = async (threadId, userId, content, parentCommentId = null) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -53,11 +53,40 @@ export const createComment = async (threadId, userId, content) => {
       throw { status: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' };
     }
 
+    if (parentCommentId !== null && parentCommentId !== undefined) {
+      const parentIdValue = parseInt(parentCommentId, 10);
+      if (Number.isNaN(parentIdValue)) {
+        throw { status: 400, message: 'Invalid parent comment', code: 'INVALID_PARENT_COMMENT' };
+      }
+
+      const parentResult = await client.query(
+        'SELECT id, thread_id, is_deleted, parent_comment_id FROM comments WHERE id = $1',
+        [parentIdValue]
+      );
+      if (parentResult.rows.length === 0) {
+        throw { status: 404, message: 'Parent comment not found', code: 'PARENT_NOT_FOUND' };
+      }
+
+      const parent = parentResult.rows[0];
+      if (parent.thread_id !== Number(threadId)) {
+        throw { status: 400, message: 'Parent comment mismatch', code: 'PARENT_MISMATCH' };
+      }
+      if (parent.is_deleted) {
+        throw { status: 400, message: 'Cannot reply to deleted comment', code: 'PARENT_DELETED' };
+      }
+      if (parent.parent_comment_id) {
+        throw { status: 400, message: 'Replies are limited to one level', code: 'PARENT_TOO_DEEP' };
+      }
+      parentCommentId = parentIdValue;
+    } else {
+      parentCommentId = null;
+    }
+
     const result = await client.query(
-      `INSERT INTO comments (thread_id, user_id, content) 
-      VALUES ($1, $2, $3) 
-      RETURNING id, thread_id, user_id, content, is_edited, is_deleted, created_at, updated_at`,
-      [threadId, userId, content]
+      `INSERT INTO comments (thread_id, user_id, parent_comment_id, content) 
+      VALUES ($1, $2, $3, $4) 
+      RETURNING id, thread_id, user_id, parent_comment_id, content, is_edited, is_deleted, created_at, updated_at`,
+      [threadId, userId, parentCommentId, content]
     );
 
     // Update thread comment_count

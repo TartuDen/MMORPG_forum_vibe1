@@ -135,12 +135,17 @@ export const initializeDatabase = async () => {
         id SERIAL PRIMARY KEY,
         thread_id INTEGER NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+        parent_comment_id INTEGER REFERENCES comments(id) ON DELETE SET NULL,
         content TEXT NOT NULL,
         is_edited BOOLEAN DEFAULT false,
         is_deleted BOOLEAN DEFAULT false,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+    await pool.query(`
+      ALTER TABLE comments
+        ADD COLUMN IF NOT EXISTS parent_comment_id INTEGER REFERENCES comments(id) ON DELETE SET NULL;
     `);
 
     // Reputation settings (single row)
@@ -249,6 +254,7 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_comments_thread_id ON comments(thread_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_comment_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_thread_votes_thread_id ON thread_votes(thread_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_thread_votes_user_id ON thread_votes(user_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_comment_votes_comment_id ON comment_votes(comment_id);`);
