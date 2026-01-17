@@ -12,8 +12,8 @@ A full-stack MMO/RPG Game Community Forum application with user authentication, 
 **Tech Stack:**
 - **Backend:** Node.js 18+, Express.js, PostgreSQL 14+
 - **Frontend:** React 18+, Vite, Axios, React Router, Context API
-- **Authentication:** JWT (access + refresh tokens), bcryptjs password hashing
-- **Database:** PostgreSQL with 6 tables (users, games, forums, threads, comments, moderation_log)
+- **Authentication:** JWT access tokens + refresh token rotation (HttpOnly cookies + CSRF), bcryptjs password hashing
+- **Database:** PostgreSQL with 7 tables (users, games, forums, threads, comments, moderation_log, refresh_tokens)
 
 ---
 
@@ -21,8 +21,10 @@ A full-stack MMO/RPG Game Community Forum application with user authentication, 
 
 ### Authentication & Users
 - ✅ User registration with password validation (8+ chars, uppercase, lowercase, number)
-- ✅ User login with JWT tokens
-- ✅ Token refresh mechanism (1hr access, 7-day refresh)
+- ✅ User login with JWT access cookie + refresh token rotation
+- ✅ Token refresh mechanism (1hr access, 7-day refresh) using HttpOnly cookies
+- ✅ CSRF protection for state-changing requests
+- ✅ Logout endpoint clears auth cookies
 - ✅ Protected routes (ProtectedRoute wrapper)
 - ✅ User profiles with stats (total posts, threads, reputation, member since)
 - ✅ Clickable usernames throughout the app (forums, threads, comments)
@@ -82,7 +84,7 @@ MMORPG_forum_vibe1/
 │   │   │   ├── comments.js           # Comment CRUD with soft delete
 │   │   │   └── search.js             # Full-text search operations
 │   │   └── config/
-│   │       ├── authRoutes.js         # Auth endpoints (/register, /login, /me, /refresh)
+│   │       ├── authRoutes.js         # Auth endpoints (/register, /login, /me, /refresh, /logout)
 │   │       ├── userRoutes.js         # User endpoints (GET /users/:id, /users)
 │   │       ├── forumRoutes.js        # Forum, thread, comment endpoints
 │   │       └── searchRoutes.js       # Search endpoints
@@ -166,6 +168,11 @@ id, thread_id (FK), user_id (FK), content, is_edited, is_deleted, created_at, up
 id, moderator_id (FK), target_user_id (FK), action, reason, created_at
 ```
 
+### refresh_tokens
+```sql
+id, user_id (FK), token_hash, expires_at, revoked_at, replaced_by, created_at, created_by_ip, revoked_by_ip
+```
+
 ---
 
 ## 🔑 API ENDPOINTS
@@ -173,9 +180,10 @@ id, moderator_id (FK), target_user_id (FK), action, reason, created_at
 ### Authentication (`/api/auth`)
 - `POST /register` - User registration
 - `POST /login` - User login
-- `POST /refresh` - Refresh access token
+- `POST /refresh` - Refresh access token (cookie-based)
 - `GET /me` - Get current user
 - `PUT /me` - Update profile
+- `POST /logout` - Clear auth cookies
 
 ### Users (`/api/users`)
 - `GET /` - List all users (paginated)
@@ -239,6 +247,9 @@ id, moderator_id (FK), target_user_id (FK), action, reason, created_at
    JWT_EXPIRE=1h
    JWT_REFRESH_EXPIRE=7d
    FRONTEND_URL=http://localhost:5173
+   COOKIE_SAME_SITE=lax
+   COOKIE_SECURE=false
+   TRUST_PROXY=false
    ```
 
    **frontend/.env:**
@@ -308,7 +319,8 @@ id, moderator_id (FK), target_user_id (FK), action, reason, created_at
 ## 🔐 Security Notes
 
 - Passwords are hashed with bcryptjs (10 salt rounds)
-- Tokens stored in localStorage (browser)
+- Tokens stored in HttpOnly cookies, refresh tokens rotated server-side
+- CSRF protection required for non-GET requests
 - CORS enabled for localhost:5173
 - JWT secret should be changed in production
 - Password requirements: 8+ chars, uppercase, lowercase, number
@@ -329,6 +341,9 @@ id, moderator_id (FK), target_user_id (FK), action, reason, created_at
 ---
 
 ## 🐛 TROUBLESHOOTING
+
+### Tests may hang
+- `npm test` can hang after the auth/cookie changes; investigate open handles before running.
 
 ### Port 5000 already in use
 ```bash
@@ -384,3 +399,15 @@ git pull origin main
 
 **Last Updated:** January 16, 2026  
 **Status:** MVP Complete - Forum creation, threads, comments, user profiles, search functional
+
+
+
+
+
+
+
+
+
+
+
+
