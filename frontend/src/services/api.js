@@ -2,19 +2,32 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
+const getCookie = (name) => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    return parts.pop().split(';').shift();
+  }
+  return null;
+};
+
 // Create axios instance
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
-// Add token to requests
+// Add CSRF header to state-changing requests
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const method = (config.method || 'get').toLowerCase();
+  if (!['get', 'head', 'options'].includes(method)) {
+    const csrfToken = getCookie('csrf_token');
+    if (csrfToken) {
+      config.headers['X-CSRF-Token'] = csrfToken;
+    }
   }
   return config;
 });
@@ -29,19 +42,17 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (refreshToken) {
-          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-            refreshToken
-          });
-
-          localStorage.setItem('token', response.data.data.token);
-          originalRequest.headers.Authorization = `Bearer ${response.data.data.token}`;
-          return apiClient(originalRequest);
-        }
+        const csrfToken = getCookie('csrf_token');
+        await axios.post(
+          `${API_BASE_URL}/auth/refresh`,
+          {},
+          {
+            withCredentials: true,
+            headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {}
+          }
+        );
+        return apiClient(originalRequest);
       } catch (refreshError) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
         window.location.href = '/login';
       }
     }
@@ -56,12 +67,14 @@ export const authAPI = {
     apiClient.post('/auth/register', { username, email, password }),
   login: (email, password) =>
     apiClient.post('/auth/login', { email, password }),
-  refreshToken: (refreshToken) =>
-    apiClient.post('/auth/refresh', { refreshToken }),
+  refreshToken: () =>
+    apiClient.post('/auth/refresh'),
   getCurrentUser: () =>
     apiClient.get('/auth/me'),
   updateProfile: (updates) =>
-    apiClient.put('/auth/me', updates)
+    apiClient.put('/auth/me', updates),
+  logout: () =>
+    apiClient.post('/auth/logout')
 };
 
 // Users API

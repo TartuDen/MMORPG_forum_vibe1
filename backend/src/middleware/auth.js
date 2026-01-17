@@ -1,10 +1,13 @@
 import { verifyToken } from '../utils/jwt.js';
 import pool from '../db/connection.js';
+import { parseCookies } from '../utils/cookies.js';
 
 export const authenticate = async (req, res, next) => {
   const supportEmail = process.env.SUPPORT_EMAIL || 'support@example.com';
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const cookies = parseCookies(req.headers.cookie);
+  const bearerToken = authHeader && authHeader.split(' ')[1];
+  const token = bearerToken || cookies.access_token;
 
   if (!token) {
     return res.status(401).json({ error: 'No token provided', code: 'NO_TOKEN' });

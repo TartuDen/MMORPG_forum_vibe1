@@ -19,15 +19,11 @@ export const AuthProvider = ({ children }) => {
   // Check if user is already logged in
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          const response = await authAPI.getCurrentUser();
-          setUser(response.data.data);
-        } catch (err) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
-        }
+      try {
+        const response = await authAPI.getCurrentUser();
+        setUser(response.data.data);
+      } catch (err) {
+        setUser(null);
       }
       setLoading(false);
     };
@@ -40,10 +36,7 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     try {
       const response = await authAPI.register(username, email, password);
-      const { user, token, refreshToken } = response.data.data;
-
-      localStorage.setItem('token', token);
-      localStorage.setItem('refreshToken', refreshToken);
+      const { user } = response.data.data;
       setUser(user);
 
       return user;
@@ -63,10 +56,7 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     try {
       const response = await authAPI.login(email, password);
-      const { user, token, refreshToken } = response.data.data;
-
-      localStorage.setItem('token', token);
-      localStorage.setItem('refreshToken', refreshToken);
+      const { user } = response.data.data;
       setUser(user);
 
       return user;
@@ -79,10 +69,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    setUser(null);
+  const logout = async () => {
+    setLoading(true);
+    try {
+      await authAPI.logout();
+    } catch (err) {
+      // Ignore logout errors; clear local state regardless.
+    } finally {
+      setUser(null);
+      setLoading(false);
+    }
   };
 
   const updateProfile = async (updates) => {
