@@ -30,6 +30,13 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      error: 'File too large',
+      code: 'FILE_TOO_LARGE'
+    });
+  }
+
   // Default error
   res.status(err.status || 500).json({
     error: err.message || 'Internal server error',

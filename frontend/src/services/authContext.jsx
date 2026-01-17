@@ -97,6 +97,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const uploadAvatar = async (file) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await authAPI.uploadAvatar(file);
+      setUser(response.data.data);
+      return response.data.data;
+    } catch (err) {
+      const errorMessage = err.response?.data?.error || 'Avatar upload failed';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -107,6 +123,7 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         updateProfile,
+        uploadAvatar,
         isAuthenticated: !!user
       }}
     >

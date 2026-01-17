@@ -22,6 +22,12 @@ const apiClient = axios.create({
 
 // Add CSRF header to state-changing requests
 apiClient.interceptors.request.use((config) => {
+  if (config.data instanceof FormData) {
+    if (config.headers && config.headers['Content-Type']) {
+      delete config.headers['Content-Type'];
+    }
+  }
+
   const method = (config.method || 'get').toLowerCase();
   if (!['get', 'head', 'options'].includes(method)) {
     const csrfToken = getCookie('csrf_token');
@@ -84,6 +90,11 @@ export const authAPI = {
     apiClient.get('/auth/me'),
   updateProfile: (updates) =>
     apiClient.put('/auth/me', updates),
+  uploadAvatar: (file) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    return apiClient.post('/auth/me/avatar', formData);
+  },
   logout: () =>
     apiClient.post('/auth/logout')
 };

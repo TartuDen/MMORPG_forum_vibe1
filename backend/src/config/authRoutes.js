@@ -1,5 +1,6 @@
 import express from 'express';
 import crypto from 'node:crypto';
+import multer from 'multer';
 import { registerUser, loginUser, getUserById, updateUser } from '../modules/users.js';
 import { generateToken } from '../utils/jwt.js';
 import { authenticate } from '../middleware/auth.js';
@@ -12,6 +13,21 @@ const router = express.Router();
 
 const ACCESS_COOKIE_NAME = 'access_token';
 const REFRESH_COOKIE_NAME = 'refresh_token';
+const MAX_AVATAR_BYTES = 100 * 1024;
+
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_AVATAR_BYTES },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+      const error = new Error('Only image files are allowed');
+      error.status = 400;
+      error.code = 'INVALID_IMAGE_TYPE';
+      return cb(error);
+    }
+    return cb(null, true);
+  }
+});
 
 const parseDurationMs = (value, fallbackMs) => {
   if (!value) return fallbackMs;
@@ -283,6 +299,28 @@ router.put('/me', authenticate, authLimiter, async (req, res, next) => {
     res.status(200).json({
       data: user,
       message: 'User profile updated'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Upload avatar (multipart/form-data)
+router.post('/me/avatar', authenticate, authLimiter, avatarUpload.single('avatar'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'Avatar file is required',
+        code: 'MISSING_AVATAR'
+      });
+    }
+
+    const dataUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+    const user = await updateUser(req.userId, { avatar_url: dataUrl });
+
+    res.status(200).json({
+      data: user,
+      message: 'Avatar updated'
     });
   } catch (error) {
     next(error);
