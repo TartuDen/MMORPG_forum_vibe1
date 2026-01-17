@@ -81,6 +81,7 @@ export default function ThreadPage() {
   if (!thread) return <div className="container"><p>Thread not found</p></div>;
 
   const isThreadOwner = user && user.id === thread.user_id;
+  const isAdmin = user && user.role === 'admin';
 
   return (
     <div className="container">
@@ -91,7 +92,7 @@ export default function ThreadPage() {
       <div className="thread-detail">
         <div className="thread-header">
           <h2>{thread.title}</h2>
-          {isThreadOwner && (
+          {(isThreadOwner || isAdmin) && (
             <button className="delete-btn" onClick={handleDeleteThread}>
               Delete Thread
             </button>

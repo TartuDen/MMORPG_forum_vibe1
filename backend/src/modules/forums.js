@@ -174,26 +174,6 @@ export const updateForum = async (forumId, updates) => {
 };
 
 export const deleteForum = async (forumId) => {
-  const forumResult = await pool.query(
-    `SELECT f.id, f.game_id, g.name as game_name
-     FROM forums f
-     JOIN games g ON f.game_id = g.id
-     WHERE f.id = $1`,
-    [forumId]
-  );
-
-  if (forumResult.rows.length === 0) {
-    throw { status: 404, message: 'Forum not found', code: 'FORUM_NOT_FOUND' };
-  }
-
-  const forum = forumResult.rows[0];
-  const countResult = await pool.query('SELECT COUNT(*) as total FROM forums WHERE game_id = $1', [forum.game_id]);
-  const total = parseInt(countResult.rows[0].total, 10);
-
-  if (total <= 1) {
-    throw { status: 403, message: 'Cannot delete the last forum for a game', code: 'FORUM_REQUIRED' };
-  }
-
   const result = await pool.query('DELETE FROM forums WHERE id = $1 RETURNING id', [forumId]);
   return result.rows[0];
 };
