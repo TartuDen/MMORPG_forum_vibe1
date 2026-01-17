@@ -143,7 +143,7 @@ export const updateUser = async (userId, updates) => {
 
   updateParams.push(`updated_at = CURRENT_TIMESTAMP`);
 
-  const query = `UPDATE users SET ${updateParams.join(', ')} WHERE id = $${paramCount} RETURNING id, username, email, role, profile_picture_url, bio, total_posts, created_at, updated_at`;
+  const query = `UPDATE users SET ${updateParams.join(', ')} WHERE id = $${paramCount} RETURNING id, username, email, role, profile_picture_url, avatar_url, bio, total_posts, created_at, updated_at`;
   const values = [...Object.values(updates_obj), userId];
 
   const result = await pool.query(query, values);

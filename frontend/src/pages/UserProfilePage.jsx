@@ -7,15 +7,24 @@ import '../styles/user-profile.css';
 export default function UserProfilePage() {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { user: currentUser, updateProfile } = useAuth();
+  const { user: currentUser, uploadAvatar } = useAuth();
   const [user, setUser] = useState(null);
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [avatarData, setAvatarData] = useState('');
+  const [avatarFile, setAvatarFile] = useState(null);
   const [avatarError, setAvatarError] = useState('');
   const [avatarSaving, setAvatarSaving] = useState(false);
   const maxAvatarBytes = 100 * 1024;
+
+  useEffect(() => {
+    return () => {
+      if (avatarData && avatarData.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarData);
+      }
+    };
+  }, [avatarData]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -62,6 +71,7 @@ export default function UserProfilePage() {
     setAvatarError('');
     if (!file) {
       setAvatarData('');
+      setAvatarFile(null);
       return;
     }
 
@@ -75,24 +85,20 @@ export default function UserProfilePage() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAvatarData(reader.result);
-    };
-    reader.onerror = () => {
-      setAvatarError('Failed to read image');
-    };
-    reader.readAsDataURL(file);
+    setAvatarFile(file);
+    const previewUrl = URL.createObjectURL(file);
+    setAvatarData(previewUrl);
   };
 
   const handleAvatarSave = async () => {
-    if (!avatarData) return;
+    if (!avatarFile) return;
     setAvatarSaving(true);
     setAvatarError('');
     try {
-      const updated = await updateProfile({ avatar_url: avatarData });
+      const updated = await uploadAvatar(avatarFile);
       setUser(updated);
       setAvatarData('');
+      setAvatarFile(null);
     } catch (err) {
       setAvatarError(err.response?.data?.error || 'Failed to update avatar');
     } finally {

@@ -80,11 +80,39 @@ const createClient = () => {
     return { status: response.status, body };
   };
 
+  const requestForm = async (method, path, formData) => {
+    const headers = {};
+    const cookieHeader = buildCookieHeader();
+    if (cookieHeader) {
+      headers.Cookie = cookieHeader;
+    }
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+      if (jar.csrf_token) {
+        headers['X-CSRF-Token'] = jar.csrf_token;
+      }
+    }
+
+    const response = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers,
+      body: formData
+    });
+
+    if (typeof response.headers.getSetCookie === 'function') {
+      updateCookies(response.headers.getSetCookie());
+    } else {
+      updateCookies(response.headers.get('set-cookie'));
+    }
+    const body = await response.json().catch(() => ({}));
+    return { status: response.status, body };
+  };
+
   return {
     get: (path) => request('GET', path),
     post: (path, payload) => request('POST', path, payload),
     put: (path, payload) => request('PUT', path, payload),
-    delete: (path) => request('DELETE', path)
+    delete: (path) => request('DELETE', path),
+    postForm: (path, formData) => requestForm('POST', path, formData)
   };
 };
 
@@ -304,6 +332,10 @@ runTest('user can update profile, add thread, and delete own comment', async () 
 
   const removeComment = await client.delete(`/forums/${forumId}/threads/${threadId}/comments/${commentId}`);
   assert.equal(removeComment.status, 200);
+
+  const admin = await ensureAdminClient();
+  const deleteThread = await admin.delete(`/forums/${forumId}/threads/${threadId}`);
+  assert.equal(deleteThread.status, 200);
 });
 
 runTest('thread can be deleted by admin only', async () => {
@@ -449,6 +481,31 @@ runTest('rejects oversized thread content', async () => {
 
   assert.equal(createThread.status, 400);
   assert.equal(createThread.body?.code, 'CONTENT_TOO_LONG');
+});
+
+runTest('uploads avatar image and stores data URL', async () => {
+  const client = createClient();
+  const suffix = Date.now();
+  const username = `avatar_${suffix}`.slice(0, 20);
+  const email = `avatar_${suffix}@example.com`;
+  const password = 'StrongPass1';
+
+  const register = await client.post('/auth/register', {
+    username,
+    email,
+    password,
+    confirmPassword: password
+  });
+  assert.equal(register.status, 201);
+
+  const pngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/6X3Jt8AAAAASUVORK5CYII=';
+  const buffer = Buffer.from(pngBase64, 'base64');
+  const form = new FormData();
+  form.append('avatar', new Blob([buffer], { type: 'image/png' }), 'avatar.png');
+
+  const upload = await client.postForm('/auth/me/avatar', form);
+  assert.equal(upload.status, 200);
+  assert.ok(upload.body?.data?.avatar_url?.startsWith('data:image/png;base64,'));
 });
 
 const run = async () => {
