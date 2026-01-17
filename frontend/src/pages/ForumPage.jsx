@@ -98,6 +98,7 @@ export default function ForumPage() {
               <tr>
                 <th>Title</th>
                 <th>Author</th>
+                <th>Score</th>
                 <th>Replies</th>
                 <th>Views</th>
                 <th>Last Post</th>
@@ -137,6 +138,7 @@ export default function ForumPage() {
                       <span className="role-badge admin">Admin</span>
                     )}
                   </td>
+                  <td className="thread-score">{thread.vote_score ?? 0}</td>
                   <td className="thread-replies">{thread.comment_count}</td>
                   <td className="thread-views">{thread.view_count}</td>
                   <td className="thread-date">

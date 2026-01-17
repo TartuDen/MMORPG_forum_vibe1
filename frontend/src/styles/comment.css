@@ -58,6 +58,55 @@
   gap: 0.5rem;
 }
 
+.comment-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.comment-vote {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.25rem 0.5rem;
+}
+
+.vote-btn {
+  border: none;
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.2rem 0.35rem;
+  border-radius: 999px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.vote-btn:hover:not(:disabled) {
+  background-color: #e2e8f0;
+  color: var(--color-dark);
+}
+
+.vote-btn.active {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.vote-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.vote-score {
+  font-weight: 600;
+  color: var(--color-dark);
+  min-width: 1.5rem;
+  text-align: center;
+}
+
 .edit-btn,
 .delete-btn {
   padding: 0.4rem 0.75rem;
@@ -172,4 +221,14 @@
   margin-bottom: 1rem;
   border-left: 4px solid #c00;
   font-size: 0.9rem;
+}
+
+.vote-error {
+  background-color: #fff4e5;
+  color: #9a3412;
+  padding: 0.6rem 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  border-left: 4px solid #f97316;
+  font-size: 0.85rem;
 }

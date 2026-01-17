@@ -37,6 +37,7 @@ A full-stack MMO/RPG Game Community Forum application with user authentication, 
 - User profiles with stats (total posts, threads, reputation, member since)
 - Clickable usernames throughout the app (forums, threads, comments)
 - Avatar upload (stored in DB as data URL, max 100KB)
+- Profile option to hide reputation (admins never earn reputation)
 - Security hardening (headers, origin checks, rate limits, account lockout, JWT issuer/audience)
 
 ### Forum Management
@@ -48,11 +49,13 @@ A full-stack MMO/RPG Game Community Forum application with user authentication, 
 - Pinned threads support
 - Thread view counter
 
-### Comments & Discussions
-- Post comments on threads
-- Edit comments (owner only)
-- Delete comments (soft delete)
-- Comment counter on threads
+
+
+### Reputation
+- Upvote/downvote threads and comments (no self-voting)
+- Voting requires configurable account age (admin setting)
+- Thread and comment scores visible to everyone
+- Realtime score updates via Socket.io on thread pages
 
 ### Search Functionality
 - Full-text search on threads, comments, users, forums
@@ -113,14 +116,18 @@ A full-stack MMO/RPG Game Community Forum application with user authentication, 
 ## Schema Changes
 - users.avatar_url
 - users.is_banned/banned_at/banned_reason
+- users.hide_reputation
 - threads.image_url
 - games.tags (TEXT[])
 - games.auto_forum_enabled
+- app_settings (min_account_age_days)
+- thread_votes, comment_votes
 
 ---
 
 ## Migrations
 - backend/migrations/001_add_user_ban_and_fk_restrict.sql (ban fields + FK restrict)
+- backend/migrations/002_add_reputation.sql (reputation settings + vote tables)
 - init.js also applies "ALTER TABLE ... ADD COLUMN IF NOT EXISTS" for new columns
 
 ---
@@ -216,7 +223,7 @@ MMORPG_forum_vibe1/
 
 ### users
 ```sql
-id, username, email, password_hash, role, profile_picture_url, avatar_url, bio,
+id, username, email, password_hash, role, profile_picture_url, avatar_url, hide_reputation, bio,
 total_posts, failed_login_attempts, locked_until, created_at, updated_at
 ```
 
@@ -261,9 +268,21 @@ id, created_at, updated_at
 conversation_id (FK), user_id (FK), last_read_at
 ```
 
-### messages
+
+
+### app_settings
 ```sql
-id, conversation_id (FK), sender_id (FK), body, created_at
+id, min_account_age_days, created_at, updated_at
+```
+
+### thread_votes
+```sql
+id, thread_id (FK), user_id (FK), value, created_at, updated_at
+```
+
+### comment_votes
+```sql
+id, comment_id (FK), user_id (FK), value, created_at, updated_at
 ```
 
 ---
@@ -302,12 +321,13 @@ id, conversation_id (FK), sender_id (FK), body, created_at
 - `GET /users?q=query` - Search users
 - `GET /forums?q=query` - Search forums
 
-### Messages (`/api/messages`)
-- `GET /conversations` - List conversations
-- `POST /conversations` - Create or fetch conversation
-- `GET /conversations/:id/messages` - List messages
-- `POST /conversations/:id/messages` - Send message
-- `POST /conversations/:id/read` - Mark conversation as read
+
+
+### Reputation (`/api/reputation`)
+- `GET /settings` - Get reputation settings
+- `PUT /settings` - Update reputation settings (admin)
+- `POST /threads/:threadId/vote` - Vote on thread (-1, 0, 1)
+- `POST /comments/:commentId/vote` - Vote on comment (-1, 0, 1)
 
 ---
 
@@ -431,21 +451,19 @@ id, conversation_id (FK), sender_id (FK), body, created_at
 
 ## Next Features To Build
 
-1. Reputation system - Upvote/downvote threads & comments
-2. Categories/tags - Organize forums with categories
-3. Real-time notifications - Forum reply notifications
-4. Admin dashboard - Moderation tools
-5. User roles - Admin, moderator, member permissions
-6. Rich text editor - WYSIWYG for threads/comments
-7. Message attachments - File/image sharing in DMs
-8. Mobile PWA - Progressive Web App
-9. Migrate image storage to object storage (S3/Cloudinary)
-10. Persistent cache/ratelimits using Redis
-11. Add dedicated "Manage Forum" panel (per-forum settings)
-12. Add search filters in UI (tags, game, author)
+1. Categories/tags - Organize forums with categories
+2. Real-time notifications - Forum reply notifications
+3. Admin dashboard - Moderation tools
+4. User roles - Admin, moderator, member permissions
+5. Rich text editor - WYSIWYG for threads/comments
+6. Message attachments - File/image sharing in DMs
+7. Mobile PWA - Progressive Web App
+8. Migrate image storage to object storage (S3/Cloudinary)
+9. Persistent cache/ratelimits using Redis
+10. Add dedicated "Manage Forum" panel (per-forum settings)
+11. Add search filters in UI (tags, game, author)
 
 ---
-
 ## Troubleshooting
 
 ### Tests may hang
@@ -505,3 +523,15 @@ git pull origin main
 
 **Last Updated:** January 17, 2026  
 **Status:** MVP Complete - Forums, threads, comments, profiles, avatars, search, direct messages
+
+
+
+
+
+
+
+
+
+
+
+

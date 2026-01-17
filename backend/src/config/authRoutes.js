@@ -301,12 +301,13 @@ router.get('/socket-token', authenticate, async (req, res, next) => {
 // Update user profile
 router.put('/me', authenticate, authLimiter, async (req, res, next) => {
   try {
-    const { username, profile_picture_url, bio, avatar_url } = req.body;
+    const { username, profile_picture_url, bio, avatar_url, hide_reputation } = req.body;
     const user = await updateUser(req.userId, {
       username,
       profile_picture_url,
       bio,
-      avatar_url
+      avatar_url,
+      hide_reputation
     });
 
     res.status(200).json({

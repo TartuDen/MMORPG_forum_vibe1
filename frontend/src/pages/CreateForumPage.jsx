@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { forumsAPI } from '../services/api';
+import { forumsAPI, reputationAPI } from '../services/api';
 import { useAuth } from '../services/authContext';
 import '../styles/create-forum.css';
 
@@ -30,6 +30,12 @@ export default function CreateForumPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsError, setSettingsError] = useState('');
+  const [settingsSuccess, setSettingsSuccess] = useState('');
+  const [repSettings, setRepSettings] = useState({
+    min_account_age_days: 0
+  });
   const [gameForm, setGameForm] = useState({
     name: '',
     description: '',
@@ -56,8 +62,20 @@ export default function CreateForumPage() {
     }
   };
 
+  const fetchReputationSettings = async () => {
+    try {
+      const response = await reputationAPI.getSettings();
+      setRepSettings({
+        min_account_age_days: response.data.data.min_account_age_days ?? 0
+      });
+    } catch (err) {
+      setSettingsError('Failed to load reputation settings');
+    }
+  };
+
   useEffect(() => {
     fetchGames();
+    fetchReputationSettings();
   }, []);
 
   useEffect(() => {
@@ -182,6 +200,43 @@ export default function CreateForumPage() {
       setError(errorMsg);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSettingsChange = (e) => {
+    const { value } = e.target;
+    setRepSettings(prev => ({
+      ...prev,
+      min_account_age_days: value
+    }));
+  };
+
+  const handleSaveSettings = async (e) => {
+    e.preventDefault();
+    setSettingsError('');
+    setSettingsSuccess('');
+    setSettingsLoading(true);
+
+    const minDays = Number.parseInt(repSettings.min_account_age_days, 10);
+    if (Number.isNaN(minDays) || minDays < 0 || minDays > 3650) {
+      setSettingsError('Minimum account age must be between 0 and 3650 days');
+      setSettingsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await reputationAPI.updateSettings({ min_account_age_days: minDays });
+      setRepSettings({
+        min_account_age_days: response.data.data.min_account_age_days ?? minDays
+      });
+      setSettingsSuccess('Reputation settings updated.');
+    } catch (err) {
+      const errorMsg = err.response?.data?.error ||
+                       err.response?.data?.message ||
+                       'Failed to update reputation settings';
+      setSettingsError(errorMsg);
+    } finally {
+      setSettingsLoading(false);
     }
   };
 
@@ -388,6 +443,33 @@ export default function CreateForumPage() {
 
             <button type="submit" className="submit-btn" disabled={loading}>
               {loading ? 'Updating Game...' : 'Update Game'}
+            </button>
+          </form>
+        </div>
+
+        <div className="create-forum-box">
+          <h2>Reputation Settings</h2>
+
+          {settingsError && <div className="error-message">{settingsError}</div>}
+          {settingsSuccess && <div className="success-message">{settingsSuccess}</div>}
+
+          <form onSubmit={handleSaveSettings}>
+            <div className="form-group">
+              <label htmlFor="minAccountAge">Minimum account age to vote (days)</label>
+              <input
+                id="minAccountAge"
+                name="min_account_age_days"
+                type="number"
+                min="0"
+                max="3650"
+                value={repSettings.min_account_age_days}
+                onChange={handleSettingsChange}
+              />
+              <span className="form-hint">Set to 0 to allow voting immediately.</span>
+            </div>
+
+            <button type="submit" className="submit-btn" disabled={settingsLoading}>
+              {settingsLoading ? 'Saving...' : 'Save Settings'}
             </button>
           </form>
         </div>
