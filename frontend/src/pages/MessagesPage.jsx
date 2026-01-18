@@ -38,6 +38,13 @@ export default function MessagesPage() {
     return io(SOCKET_URL, { withCredentials: true, autoConnect: false });
   }, []);
 
+  const addMessageIfMissing = (incoming) => {
+    if (!incoming?.id) {
+      return;
+    }
+    setMessages((prev) => (prev.some((msg) => msg.id === incoming.id) ? prev : [...prev, incoming]));
+  };
+
   const loadConversations = async () => {
     const response = await messagesAPI.listConversations();
     setConversations(response.data.data || []);
@@ -132,7 +139,7 @@ export default function MessagesPage() {
       }
 
       if (message.conversation_id === activeIdRef.current) {
-        setMessages((prev) => [...prev, message]);
+        addMessageIfMissing(message);
         if (message.sender_id !== user?.id) {
           messagesAPI.markRead(message.conversation_id).catch(() => {});
           setConversations((prev) =>
@@ -212,7 +219,7 @@ export default function MessagesPage() {
     try {
       setSending(true);
       const response = await messagesAPI.sendMessage(activeId, messageInput.trim());
-      setMessages((prev) => [...prev, response.data.data]);
+      addMessageIfMissing(response.data.data);
       setMessageInput('');
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to send message');
