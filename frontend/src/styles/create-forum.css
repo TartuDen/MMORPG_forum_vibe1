@@ -77,6 +77,67 @@
   margin: 0;
 }
 
+.tag-form {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.tag-form input {
+  flex: 1;
+}
+
+.tag-form button {
+  padding: 0.65rem 1rem;
+  border-radius: 6px;
+  border: none;
+  background: var(--color-secondary);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.tag-form button:hover:not(:disabled) {
+  background: #d41d7a;
+}
+
+.tag-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tag-manage-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.tag-manage-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: #f9fafb;
+}
+
+.tag-manage-item button {
+  background: transparent;
+  border: 1px solid #dc2626;
+  color: #dc2626;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.tag-manage-item button:hover {
+  background: #dc2626;
+  color: white;
+}
+
 .char-counter {
   font-size: 0.8rem;
   color: #999;

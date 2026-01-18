@@ -29,6 +29,55 @@ export const getAllForums = async (gameId = null) => {
   return result.rows;
 };
 
+export const getAllTags = async () => {
+  const result = await pool.query('SELECT name FROM game_tags ORDER BY name');
+  return result.rows.map((row) => row.name);
+};
+
+export const createTag = async (name) => {
+  const result = await pool.query(
+    `INSERT INTO game_tags (name)
+     VALUES ($1)
+     ON CONFLICT (name) DO NOTHING
+     RETURNING name`,
+    [name]
+  );
+
+  if (result.rows.length === 0) {
+    return null;
+  }
+
+  return result.rows[0].name;
+};
+
+export const deleteTag = async (name) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await client.query(
+      'DELETE FROM game_tags WHERE name = $1 RETURNING name',
+      [name]
+    );
+
+    if (result.rows.length === 0) {
+      throw { status: 404, message: 'Tag not found', code: 'TAG_NOT_FOUND' };
+    }
+
+    await client.query(
+      'UPDATE games SET tags = array_remove(tags, $1) WHERE tags @> ARRAY[$1]',
+      [name]
+    );
+
+    await client.query('COMMIT');
+    return result.rows[0].name;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 export const getForumById = async (forumId) => {
   const result = await pool.query(
     `SELECT

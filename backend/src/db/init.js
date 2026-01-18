@@ -98,6 +98,15 @@ export const initializeDatabase = async () => {
         ADD COLUMN IF NOT EXISTS auto_forum_enabled BOOLEAN DEFAULT true;
     `);
 
+    // Tags table (admin-managed)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS game_tags (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(50) UNIQUE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     // Forums table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS forums (
@@ -251,6 +260,7 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_games_name ON games(name);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_game_tags_name ON game_tags(name);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_forums_game_id ON forums(game_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_forums_display_order ON forums(display_order);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_threads_forum_id ON threads(forum_id);`);
@@ -301,6 +311,16 @@ export const initializeDatabase = async () => {
         ON CONFLICT (name) DO NOTHING
       `);
     }
+
+    await pool.query(`
+      INSERT INTO game_tags (name)
+      SELECT unnest(ARRAY[
+        'mmorpg', 'mmo', 'pve', 'pvp', 'raid', 'sandbox', 'story', 'crafting',
+        'hardcore', 'casual', 'open-world', 'dungeon', 'online', 'single',
+        'solo', 'party', 'full-loot'
+      ])
+      ON CONFLICT (name) DO NOTHING
+    `);
 
     await pool.query(`
       INSERT INTO games (name, description, tags, icon_url, website_url)

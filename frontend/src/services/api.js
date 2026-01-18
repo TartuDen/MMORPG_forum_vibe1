@@ -124,6 +124,12 @@ export const forumsAPI = {
     apiClient.get(`/forums/${forumId}?page=${page}&limit=${limit}`),
   getGames: () =>
     apiClient.get('/forums/games/all'),
+  getTags: () =>
+    apiClient.get('/forums/tags'),
+  createTag: (name) =>
+    apiClient.post('/forums/tags', { name }),
+  deleteTag: (tag) =>
+    apiClient.delete(`/forums/tags/${encodeURIComponent(tag)}`),
   createGame: (payload) =>
     apiClient.post('/forums/games', payload),
   updateGame: (gameId, payload) =>

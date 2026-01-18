@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllForums, getForumById, createForum, createGame, updateGame, deleteForum, deleteGame } from '../modules/forums.js';
+import { getAllForums, getForumById, createForum, createGame, updateGame, deleteForum, deleteGame, getAllTags, createTag, deleteTag } from '../modules/forums.js';
 import { getAllThreads, getThreadById, createThread, updateThread, deleteThread, incrementThreadViews } from '../modules/threads.js';
 import { getThreadComments, createComment, updateComment, deleteComment } from '../modules/comments.js';
 import { authenticate, authorize } from '../middleware/auth.js';
@@ -14,6 +14,7 @@ const router = express.Router();
 const MAX_THREAD_TITLE_LENGTH = 200;
 const MAX_THREAD_CONTENT_LENGTH = 5000;
 const MAX_COMMENT_LENGTH = 2000;
+const TAG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const getViewerId = (req) => {
   const authHeader = req.headers['authorization'];
@@ -81,6 +82,84 @@ router.post('/create', authenticate, authorize('admin'), writeLimiter, async (re
     res.status(201).json({
       data: forum,
       message: 'Forum created successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get all tags
+router.get('/tags', cacheResponse(60000), async (req, res, next) => {
+  try {
+    const tags = await getAllTags();
+    res.status(200).json({
+      data: tags,
+      message: 'Tags retrieved'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Create tag (admin only)
+router.post('/tags', authenticate, authorize('admin'), writeLimiter, async (req, res, next) => {
+  try {
+    const rawName = req.body?.name;
+    if (!rawName || typeof rawName !== 'string') {
+      return res.status(400).json({
+        error: 'Tag name is required',
+        code: 'MISSING_TAG'
+      });
+    }
+
+    const name = rawName.trim().toLowerCase();
+    if (!TAG_REGEX.test(name)) {
+      return res.status(400).json({
+        error: 'Tag must be lowercase letters, numbers, and hyphens only',
+        code: 'INVALID_TAG'
+      });
+    }
+
+    const created = await createTag(name);
+    if (!created) {
+      return res.status(409).json({
+        error: 'Tag already exists',
+        code: 'TAG_EXISTS'
+      });
+    }
+
+    res.status(201).json({
+      data: { name: created },
+      message: 'Tag created'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete tag (admin only)
+router.delete('/tags/:tag', authenticate, authorize('admin'), writeLimiter, async (req, res, next) => {
+  try {
+    const rawTag = req.params.tag;
+    if (!rawTag || typeof rawTag !== 'string') {
+      return res.status(400).json({
+        error: 'Tag name is required',
+        code: 'MISSING_TAG'
+      });
+    }
+
+    const name = rawTag.trim().toLowerCase();
+    if (!TAG_REGEX.test(name)) {
+      return res.status(400).json({
+        error: 'Invalid tag',
+        code: 'INVALID_TAG'
+      });
+    }
+
+    const deleted = await deleteTag(name);
+    res.status(200).json({
+      data: { name: deleted },
+      message: 'Tag deleted'
     });
   } catch (error) {
     next(error);

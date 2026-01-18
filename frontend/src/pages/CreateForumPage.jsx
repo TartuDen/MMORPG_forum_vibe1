@@ -4,31 +4,27 @@ import { forumsAPI, reputationAPI } from '../services/api';
 import { useAuth } from '../services/authContext';
 import '../styles/create-forum.css';
 
-const AVAILABLE_TAGS = [
-  'mmorpg',
-  'mmo',
-  'pve',
-  'pvp',
-  'raid',
-  'sandbox',
-  'story',
-  'crafting',
-  'hardcore',
-  'casual',
-  'open-world',
-  'dungeon',
-  'online',
-  'single',
-  'solo',
-  'party',
-  'full-loot'
-];
+const normalizeTag = (value) => {
+  if (!value) return '';
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+};
 
 export default function CreateForumPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [games, setGames] = useState([]);
+  const [availableTags, setAvailableTags] = useState([]);
+  const [tagInput, setTagInput] = useState('');
+  const [tagLoading, setTagLoading] = useState(false);
+  const [tagError, setTagError] = useState('');
+  const [tagSuccess, setTagSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -64,6 +60,15 @@ export default function CreateForumPage() {
     }
   };
 
+  const fetchTags = async () => {
+    try {
+      const response = await forumsAPI.getTags();
+      setAvailableTags(response.data.data || []);
+    } catch (err) {
+      setTagError('Failed to load tags');
+    }
+  };
+
   const fetchReputationSettings = async () => {
     try {
       const response = await reputationAPI.getSettings();
@@ -77,6 +82,7 @@ export default function CreateForumPage() {
 
   useEffect(() => {
     fetchGames();
+    fetchTags();
     fetchReputationSettings();
   }, []);
 
@@ -119,6 +125,50 @@ export default function CreateForumPage() {
         tags: exists ? prev.tags.filter(item => item !== tag) : [...prev.tags, tag]
       };
     });
+  };
+
+  const handleAddTag = async (e) => {
+    e.preventDefault();
+    setTagError('');
+    setTagSuccess('');
+    const normalized = normalizeTag(tagInput);
+    if (!normalized) {
+      setTagError('Enter a valid tag name');
+      return;
+    }
+    if (availableTags.includes(normalized)) {
+      setTagError('Tag already exists');
+      return;
+    }
+
+    setTagLoading(true);
+    try {
+      await forumsAPI.createTag(normalized);
+      setTagInput('');
+      await fetchTags();
+      setTagSuccess('Tag added.');
+    } catch (err) {
+      setTagError(err.response?.data?.error || 'Failed to add tag');
+    } finally {
+      setTagLoading(false);
+    }
+  };
+
+  const handleDeleteTag = async (tag) => {
+    const confirmed = window.confirm(`Delete tag "${tag}"? This removes it from all games.`);
+    if (!confirmed) return;
+    setTagError('');
+    setTagSuccess('');
+    setTagLoading(true);
+    try {
+      await forumsAPI.deleteTag(tag);
+      await fetchTags();
+      setTagSuccess('Tag removed.');
+    } catch (err) {
+      setTagError(err.response?.data?.error || 'Failed to delete tag');
+    } finally {
+      setTagLoading(false);
+    }
   };
 
   const handleCreateGame = async (e) => {
@@ -297,7 +347,7 @@ export default function CreateForumPage() {
               <div className="form-group">
                 <label>Tags *</label>
                 <div className="tag-grid">
-                  {AVAILABLE_TAGS.map((tag) => (
+                  {availableTags.map((tag) => (
                     <label key={tag} className="tag-option">
                       <input
                         type="checkbox"
@@ -403,14 +453,14 @@ export default function CreateForumPage() {
               />
             </div>
 
-            <div className="form-group">
-              <label>Tags *</label>
-              <div className="tag-grid">
-                {AVAILABLE_TAGS.map((tag) => (
-                  <label key={tag} className="tag-option">
-                    <input
-                      type="checkbox"
-                      checked={gameEdit.tags.includes(tag)}
+              <div className="form-group">
+                <label>Tags *</label>
+                <div className="tag-grid">
+                  {availableTags.map((tag) => (
+                    <label key={tag} className="tag-option">
+                      <input
+                        type="checkbox"
+                        checked={gameEdit.tags.includes(tag)}
                       onChange={() => toggleTag(tag, 'edit')}
                     />
                     <span>{tag}</span>
@@ -474,6 +524,40 @@ export default function CreateForumPage() {
               {settingsLoading ? 'Saving...' : 'Save Settings'}
             </button>
           </form>
+        </div>
+
+        <div className="create-forum-box">
+          <h2>Manage Tags</h2>
+
+          {tagError && <div className="error-message">{tagError}</div>}
+          {tagSuccess && <div className="success-message">{tagSuccess}</div>}
+
+          <form onSubmit={handleAddTag} className="tag-form">
+            <input
+              type="text"
+              placeholder="Add new tag (e.g., open-world)"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+            />
+            <button type="submit" disabled={tagLoading}>
+              {tagLoading ? 'Saving...' : 'Add Tag'}
+            </button>
+          </form>
+
+          <div className="tag-manage-list">
+            {availableTags.length === 0 ? (
+              <p className="form-hint">No tags available yet.</p>
+            ) : (
+              availableTags.map((tag) => (
+                <div key={tag} className="tag-manage-item">
+                  <span>{tag}</span>
+                  <button type="button" onClick={() => handleDeleteTag(tag)}>
+                    Remove
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>
