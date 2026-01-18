@@ -78,6 +78,15 @@
   border-left: 4px solid #c00;
 }
 
+.success-message {
+  background-color: #ecfdf3;
+  color: #047857;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  border-left: 4px solid #10b981;
+}
+
 .google-auth {
   margin-bottom: 1.5rem;
 }
@@ -110,6 +119,25 @@
   text-align: center;
   margin-top: 1rem;
   color: var(--color-dark);
+}
+
+.secondary-btn {
+  width: 100%;
+  padding: 0.65rem;
+  margin-top: 0.75rem;
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: 4px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.secondary-btn:hover {
+  background-color: var(--color-primary);
+  color: white;
 }
 
 .auth-link a {

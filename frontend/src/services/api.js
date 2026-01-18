@@ -84,6 +84,10 @@ export const authAPI = {
     apiClient.post('/auth/register', { username, email, password }),
   login: (email, password) =>
     apiClient.post('/auth/login', { email, password }),
+  verifyEmail: (token) =>
+    apiClient.get(`/auth/verify-email?token=${encodeURIComponent(token)}`),
+  resendVerification: (email) =>
+    apiClient.post('/auth/resend-verification', { email }),
   googleLogin: (credential) =>
     apiClient.post('/auth/google', { credential }),
   refreshToken: () =>

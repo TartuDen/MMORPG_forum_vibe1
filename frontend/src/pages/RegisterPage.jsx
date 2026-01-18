@@ -9,6 +9,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const { register, loginWithGoogle, error: authError } = useAuth();
   const navigate = useNavigate();
@@ -77,6 +78,7 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -86,8 +88,16 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await register(username, email, password);
-      navigate('/');
+      const payload = await register(username, email, password);
+      if (payload?.verificationUrl) {
+        setSuccess(`Verification link (dev): ${payload.verificationUrl}`);
+      } else {
+        setSuccess('Check your email to verify your account.');
+      }
+      setUsername('');
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
     } catch (err) {
       // Error is already handled by authContext
       const errorMsg = err.response?.data?.error || 
@@ -106,6 +116,7 @@ export default function RegisterPage() {
         <h2>Register</h2>
 
         {error && <div className="error-message">{error}</div>}
+        {success && <div className="success-message">{success}</div>}
 
         {googleClientId ? (
           <div className="google-auth">

@@ -144,7 +144,7 @@ app.use(generalLimiter);
 app.use(express.json({ limit: '512kb' }));
 app.use(express.urlencoded({ extended: true, limit: '512kb' }));
 app.use(enforceOriginPolicy);
-app.use(csrfProtection({ ignorePaths: ['/api/auth/login', '/api/auth/register', '/api/auth/google'] }));
+app.use(csrfProtection({ ignorePaths: ['/api/auth/login', '/api/auth/register', '/api/auth/google', '/api/auth/resend-verification'] }));
 
 // Routes
 app.get('/api/health', (req, res) => {

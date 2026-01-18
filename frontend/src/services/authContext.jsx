@@ -36,10 +36,14 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     try {
       const response = await authAPI.register(username, email, password);
-      const { user } = response.data.data;
-      setUser(user);
+      const payload = response.data.data;
+      if (payload?.user) {
+        setUser(payload.user);
+      } else {
+        setUser(null);
+      }
 
-      return user;
+      return payload;
     } catch (err) {
       const errorMessage = err.response?.data?.error || 
                           err.response?.data?.message || 

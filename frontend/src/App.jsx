@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 import ForumPage from './pages/ForumPage';
 import ThreadPage from './pages/ThreadPage';
 import CreateThreadPage from './pages/CreateThreadPage';
@@ -41,6 +42,7 @@ function AppContent() {
           path="/register"
           element={isAuthenticated ? <Navigate to="/" /> : <RegisterPage />}
         />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/forums/:forumId" element={<ForumPage />} />
         <Route path="/forums/:forumId/threads/:threadId" element={<ThreadPage />} />
         <Route path="/games/category/:tag" element={<GameCategoryPage />} />

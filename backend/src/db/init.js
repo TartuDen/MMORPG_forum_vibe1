@@ -52,6 +52,8 @@ export const initializeDatabase = async () => {
         role VARCHAR(50) DEFAULT 'user' CHECK (role IN ('admin', 'moderator', 'user')),
         auth_provider VARCHAR(50) DEFAULT 'local' CHECK (auth_provider IN ('local', 'google')),
         google_id TEXT UNIQUE,
+        is_email_verified BOOLEAN DEFAULT false,
+        email_verified_at TIMESTAMP,
         is_banned BOOLEAN DEFAULT false,
         banned_at TIMESTAMP,
         banned_reason TEXT,
@@ -70,6 +72,8 @@ export const initializeDatabase = async () => {
       ALTER TABLE users
         ADD COLUMN IF NOT EXISTS auth_provider VARCHAR(50) DEFAULT 'local' CHECK (auth_provider IN ('local', 'google')),
         ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE,
+        ADD COLUMN IF NOT EXISTS is_email_verified BOOLEAN DEFAULT false,
+        ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMP,
         ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false,
         ADD COLUMN IF NOT EXISTS banned_at TIMESTAMP,
         ADD COLUMN IF NOT EXISTS banned_reason TEXT,
@@ -210,6 +214,19 @@ export const initializeDatabase = async () => {
       );
     `);
 
+    // Email verification tokens
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS email_verifications (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token_hash VARCHAR(128) UNIQUE NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        used_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     // Refresh tokens table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS refresh_tokens (
@@ -276,6 +293,8 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_comment_votes_user_id ON comment_votes(user_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_moderation_log_created_at ON moderation_log(created_at);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_moderation_log_moderator ON moderation_log(moderator_id);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_email_verifications_user_id ON email_verifications(user_id);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_email_verifications_token_hash ON email_verifications(token_hash);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id);`);
@@ -357,15 +376,15 @@ export const initializeDatabase = async () => {
       const passwordHash = await hashPassword('Plot123123');
 
       await pool.query(
-        `INSERT INTO users (username, email, password_hash, role)
-         VALUES ($1, $2, $3, $4)
+        `INSERT INTO users (username, email, password_hash, role, is_email_verified, email_verified_at)
+         VALUES ($1, $2, $3, $4, true, CURRENT_TIMESTAMP)
          ON CONFLICT (username) DO NOTHING`,
         ['pomogA', 'pomoga@example.com', passwordHash, 'admin']
       );
 
       await pool.query(
-        `INSERT INTO users (username, email, password_hash, role)
-         VALUES ($1, $2, $3, $4)
+        `INSERT INTO users (username, email, password_hash, role, is_email_verified, email_verified_at)
+         VALUES ($1, $2, $3, $4, true, CURRENT_TIMESTAMP)
          ON CONFLICT (username) DO NOTHING`,
         ['pomogB', 'pomogb@example.com', passwordHash, 'user']
       );

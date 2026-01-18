@@ -99,7 +99,8 @@ export const loginUser = async (identifier, password) => {
   // Find user by email or username
   const result = await pool.query(
     `SELECT id, username, email, password_hash, role, is_banned, avatar_url,
-            hide_reputation, failed_login_attempts, locked_until
+            hide_reputation, failed_login_attempts, locked_until,
+            is_email_verified, email_verified_at
      FROM users
      WHERE email = $1 OR username = $1`,
     [identifier]
@@ -111,6 +112,13 @@ export const loginUser = async (identifier, password) => {
 
   const user = result.rows[0];
   ensureAccountActive(user);
+  if (!user.is_email_verified) {
+    throw {
+      status: 403,
+      message: 'Please verify your email before logging in.',
+      code: 'EMAIL_NOT_VERIFIED'
+    };
+  }
 
   // Compare password
   const isMatch = await comparePassword(password, user.password_hash);
@@ -178,9 +186,11 @@ export const findOrCreateGoogleUser = async ({ googleId, email, name, picture })
       `UPDATE users
        SET google_id = $1,
            auth_provider = 'google',
+           is_email_verified = true,
+           email_verified_at = COALESCE(email_verified_at, CURRENT_TIMESTAMP),
            profile_picture_url = COALESCE(profile_picture_url, $2)
        WHERE id = $3
-       RETURNING id, username, email, role, auth_provider, google_id, profile_picture_url, created_at`,
+       RETURNING id, username, email, role, auth_provider, google_id, profile_picture_url, created_at, is_email_verified`,
       [googleId, picture || null, user.id]
     );
 
@@ -193,9 +203,9 @@ export const findOrCreateGoogleUser = async ({ googleId, email, name, picture })
   const passwordHash = await hashPassword(randomPassword);
 
   const result = await pool.query(
-    `INSERT INTO users (username, email, password_hash, role, auth_provider, google_id, profile_picture_url)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
-     RETURNING id, username, email, role, auth_provider, google_id, profile_picture_url, created_at`,
+    `INSERT INTO users (username, email, password_hash, role, auth_provider, google_id, profile_picture_url, is_email_verified, email_verified_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, true, CURRENT_TIMESTAMP)
+     RETURNING id, username, email, role, auth_provider, google_id, profile_picture_url, created_at, is_email_verified`,
     [username, email, passwordHash, 'user', 'google', googleId, picture || null]
   );
 
@@ -205,7 +215,7 @@ export const findOrCreateGoogleUser = async ({ googleId, email, name, picture })
 export const getUserById = async (userId) => {
   const result = await pool.query(
     `SELECT id, username, email, role, profile_picture_url, avatar_url, bio,
-            total_posts, hide_reputation, created_at, updated_at
+            total_posts, hide_reputation, is_email_verified, email_verified_at, created_at, updated_at
      FROM users
      WHERE id = $1`,
     [userId]

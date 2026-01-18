@@ -9,6 +9,7 @@ import { authLimiter } from '../middleware/rateLimit.js';
 import pool from '../db/connection.js';
 import { parseCookies } from '../utils/cookies.js';
 import { CSRF_COOKIE_NAME, generateCsrfToken } from '../middleware/csrf.js';
+import { sendVerificationEmail } from '../utils/email.js';
 
 const router = express.Router();
 
@@ -56,6 +57,7 @@ const parseDurationMs = (value, fallbackMs) => {
 
 const ACCESS_TTL_MS = parseDurationMs(process.env.JWT_EXPIRE, 60 * 60 * 1000);
 const REFRESH_TTL_MS = parseDurationMs(process.env.JWT_REFRESH_EXPIRE, 7 * 24 * 60 * 60 * 1000);
+const EMAIL_VERIFY_TTL_MS = parseDurationMs(process.env.EMAIL_VERIFY_EXPIRE, 24 * 60 * 60 * 1000);
 
 const getCookieOptions = (overrides = {}) => {
   const sameSite = process.env.COOKIE_SAME_SITE
@@ -120,6 +122,31 @@ const getRefreshTokenFromRequest = (req) => {
   return cookies[REFRESH_COOKIE_NAME];
 };
 
+const getVerificationBaseUrl = () => {
+  return process.env.FRONTEND_URL || 'http://localhost:5173';
+};
+
+const createEmailVerification = async (userId, email) => {
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  const tokenHash = hashToken(rawToken);
+  const expiresAt = new Date(Date.now() + EMAIL_VERIFY_TTL_MS);
+
+  await pool.query(
+    `UPDATE email_verifications
+     SET used_at = CURRENT_TIMESTAMP
+     WHERE user_id = $1 AND used_at IS NULL`,
+    [userId]
+  );
+
+  await pool.query(
+    `INSERT INTO email_verifications (user_id, token_hash, email, expires_at)
+     VALUES ($1, $2, $3, $4)`,
+    [userId, tokenHash, email, expiresAt]
+  );
+
+  return rawToken;
+};
+
 const verifyGoogleCredential = async (credential) => {
   if (!googleClient) {
     throw { status: 500, message: 'Google OAuth is not configured', code: 'GOOGLE_OAUTH_NOT_CONFIGURED' };
@@ -158,14 +185,20 @@ router.post('/register', authLimiter, async (req, res, next) => {
     }
 
     const user = await registerUser(username, email, password);
-    const csrfToken = await issueTokens(user.id, req, res);
+    const verificationToken = await createEmailVerification(user.id, user.email);
+    const verificationUrl = `${getVerificationBaseUrl()}/verify-email?token=${verificationToken}`;
+    await sendVerificationEmail({
+      to: user.email,
+      username: user.username,
+      verificationUrl
+    });
 
     res.status(201).json({
       data: {
-        user,
-        csrfToken
+        email: user.email,
+        ...(process.env.NODE_ENV !== 'production' ? { verificationUrl } : {})
       },
-      message: 'User registered successfully'
+      message: 'Verification email sent'
     });
   } catch (error) {
     next(error);
@@ -287,6 +320,118 @@ router.post('/refresh', authLimiter, async (req, res, next) => {
     res.status(200).json({
       data: { csrfToken },
       message: 'Token refreshed'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Verify email
+router.get('/verify-email', async (req, res, next) => {
+  try {
+    const token = req.query.token;
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({
+        error: 'Verification token required',
+        code: 'MISSING_VERIFICATION_TOKEN'
+      });
+    }
+
+    const tokenHash = hashToken(token);
+    const result = await pool.query(
+      `SELECT id, user_id, expires_at, used_at
+       FROM email_verifications
+       WHERE token_hash = $1`,
+      [tokenHash]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({
+        error: 'Invalid verification token',
+        code: 'INVALID_VERIFICATION_TOKEN'
+      });
+    }
+
+    const record = result.rows[0];
+    if (record.used_at) {
+      return res.status(400).json({
+        error: 'Verification token already used',
+        code: 'VERIFICATION_TOKEN_USED'
+      });
+    }
+
+    if (new Date(record.expires_at) <= new Date()) {
+      return res.status(400).json({
+        error: 'Verification token expired',
+        code: 'VERIFICATION_TOKEN_EXPIRED'
+      });
+    }
+
+    await pool.query(
+      `UPDATE users
+       SET is_email_verified = true, email_verified_at = CURRENT_TIMESTAMP
+       WHERE id = $1`,
+      [record.user_id]
+    );
+    await pool.query(
+      `UPDATE email_verifications
+       SET used_at = CURRENT_TIMESTAMP
+       WHERE id = $1`,
+      [record.id]
+    );
+
+    res.status(200).json({
+      message: 'Email verified'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Resend verification
+router.post('/resend-verification', authLimiter, async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({
+        error: 'Email is required',
+        code: 'MISSING_EMAIL'
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT id, username, email, is_email_verified
+       FROM users
+       WHERE email = $1`,
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(200).json({
+        message: 'If that account exists, a verification email has been sent.'
+      });
+    }
+
+    const user = result.rows[0];
+    if (user.is_email_verified) {
+      return res.status(200).json({
+        message: 'Email already verified.'
+      });
+    }
+
+    const verificationToken = await createEmailVerification(user.id, user.email);
+    const verificationUrl = `${getVerificationBaseUrl()}/verify-email?token=${verificationToken}`;
+    await sendVerificationEmail({
+      to: user.email,
+      username: user.username,
+      verificationUrl
+    });
+
+    res.status(200).json({
+      data: {
+        ...(process.env.NODE_ENV !== 'production' ? { verificationUrl } : {})
+      },
+      message: 'Verification email sent'
     });
   } catch (error) {
     next(error);

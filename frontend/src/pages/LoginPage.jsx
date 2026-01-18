@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../services/authContext';
+import { authAPI } from '../services/api';
 import '../styles/auth.css';
 import { useEffect, useRef, useState } from 'react';
 
@@ -7,6 +8,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [resendStatus, setResendStatus] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
@@ -68,6 +70,7 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setResendStatus('');
     setLoading(true);
 
     try {
@@ -80,12 +83,32 @@ export default function LoginPage() {
     }
   };
 
+  const handleResendVerification = async () => {
+    if (!email.trim()) {
+      setResendStatus('Enter your email to resend verification.');
+      return;
+    }
+    setResendStatus('Sending verification email...');
+    try {
+      const response = await authAPI.resendVerification(email.trim());
+      const devUrl = response.data?.data?.verificationUrl;
+      if (devUrl) {
+        setResendStatus(`Verification link (dev): ${devUrl}`);
+      } else {
+        setResendStatus('Check your email for a verification link.');
+      }
+    } catch (err) {
+      setResendStatus(err.response?.data?.error || 'Failed to resend verification.');
+    }
+  };
+
   return (
     <div className="auth-container">
       <div className="auth-box">
         <h2>Login</h2>
 
         {error && <div className="error-message">{error}</div>}
+        {resendStatus && <div className="success-message">{resendStatus}</div>}
 
         {googleClientId ? (
           <div className="google-auth">
@@ -125,6 +148,12 @@ export default function LoginPage() {
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
+
+        {error && error.includes('verify your email') && (
+          <button type="button" className="secondary-btn" onClick={handleResendVerification}>
+            Resend verification email
+          </button>
+        )}
 
         <p className="auth-link">
           Don't have an account? <a href="/register">Register here</a>
