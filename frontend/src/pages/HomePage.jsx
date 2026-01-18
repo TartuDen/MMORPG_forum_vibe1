@@ -50,25 +50,21 @@ export default function HomePage() {
   const gamesWithForums = games
     .filter((game) => game.name !== 'Community')
     .filter((game) => forumByGame[game.id]);
-  const tagMap = gamesWithForums.reduce((acc, game) => {
+  const tagCounts = gamesWithForums.reduce((acc, game) => {
     if (!Array.isArray(game.tags)) {
       return acc;
     }
     game.tags.forEach((tag) => {
-      if (!acc[tag]) {
-        acc[tag] = [];
-      }
-      acc[tag].push(game);
+      acc[tag] = (acc[tag] || 0) + 1;
     });
     return acc;
   }, {});
-  const sortedTags = Object.keys(tagMap)
+  const sortedTags = Object.keys(tagCounts)
     .sort((a, b) => {
-      const diff = tagMap[b].length - tagMap[a].length;
+      const diff = tagCounts[b] - tagCounts[a];
       if (diff !== 0) return diff;
       return a.localeCompare(b);
     });
-  const featuredTags = sortedTags.slice(0, 6);
 
   return (
     <div className="container">
@@ -119,46 +115,41 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className="tag-sections">
-        {featuredTags.map((tag) => (
-          <div key={tag} className="tag-section">
-            <div className="tag-section-header">
-              <h3>{tag}</h3>
-              <button
-                type="button"
-                className="tag-link"
-                onClick={() => navigate(`/games/category/${encodeURIComponent(tag)}`)}
+      <div className="games-section">
+        <h3>All Game Forums</h3>
+        <div className="games-grid">
+          {gamesWithForums.map((game) => {
+            const forum = forumByGame[game.id];
+            return (
+              <div
+                key={game.id}
+                className="game-card"
+                style={game.icon_url ? { backgroundImage: `url(${game.icon_url})` } : undefined}
+                onClick={() => forum && navigate(`/forums/${forum.id}`)}
+                role="button"
+                tabIndex={0}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && forum) {
+                    navigate(`/forums/${forum.id}`);
+                  }
+                }}
               >
-                See all
-              </button>
-            </div>
-            <div className="tag-games">
-              {tagMap[tag].slice(0, 4).map((game) => {
-                const forum = forumByGame[game.id];
-                return (
-                  <div
-                    key={game.id}
-                    className="game-card compact"
-                    style={game.icon_url ? { backgroundImage: `url(${game.icon_url})` } : undefined}
-                    onClick={() => forum && navigate(`/forums/${forum.id}`)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter' && forum) {
-                        navigate(`/forums/${forum.id}`);
-                      }
-                    }}
-                  >
-                    <div className="game-card-header">
-                      <h4>{game.name}</h4>
-                    </div>
-                    <p>{game.description || 'No description yet.'}</p>
+                <div className="game-card-header">
+                  <h4>{game.name}</h4>
+                </div>
+                {Array.isArray(game.tags) && game.tags.length > 0 ? (
+                  <div className="tag-row">
+                    {game.tags.slice(0, 4).map((tag) => (
+                      <span key={tag} className="tag-pill">{tag}</span>
+                    ))}
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+                ) : null}
+                <p>{game.description || 'No description yet.'}</p>
+                <div className="game-card-hint">Open forum →</div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
