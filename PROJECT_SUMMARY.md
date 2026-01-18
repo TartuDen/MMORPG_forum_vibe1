@@ -13,6 +13,15 @@
 
 ---
 
+## Recent Updates (Jan 18, 2026)
+
+- Added Google OAuth login and account linking.
+- Added email verification flow with resend + verify page (SMTP-ready).
+- Added admin-managed tag list and UI (create/delete tags).
+- Updated Home/Forum UI for General Discussion preview + hero styling.
+
+---
+
 ## Project Overview
 
 A full-stack MMO/RPG Game Community Forum application with user authentication, forum management, threading system, and user profiles.
@@ -521,7 +530,7 @@ git pull origin main
 
 ---
 
-**Last Updated:** January 17, 2026  
+**Last Updated:** January 18, 2026  
 **Status:** MVP Complete - Forums, threads, comments, profiles, avatars, search, direct messages
 
 
