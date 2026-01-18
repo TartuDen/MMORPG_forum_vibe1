@@ -78,6 +78,34 @@
   border-left: 4px solid #c00;
 }
 
+.google-auth {
+  margin-bottom: 1.5rem;
+}
+
+.google-button {
+  display: flex;
+  justify-content: center;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  color: #666;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
 .auth-link {
   text-align: center;
   margin-top: 1rem;

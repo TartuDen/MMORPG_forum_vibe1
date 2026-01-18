@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import pool from '../db/connection.js';
 import { hashPassword, comparePassword } from '../utils/password.js';
 import { validateEmail, validateUsername, validatePassword, sanitizeUser, parseImageDataUrl } from '../utils/validators.js';
@@ -10,6 +11,55 @@ const LOGIN_LOCKOUT_MINUTES = Number.parseInt(
   process.env.LOGIN_LOCKOUT_MINUTES || '15',
   10
 );
+
+const normalizeUsername = (value) => {
+  if (!value) return 'user';
+  const cleaned = String(value).toLowerCase().replace(/[^a-z0-9_]/g, '');
+  if (cleaned.length < 3) {
+    return 'user';
+  }
+  return cleaned.slice(0, 20);
+};
+
+const createUniqueUsername = async (base) => {
+  let candidate = normalizeUsername(base);
+
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    if (!validateUsername(candidate)) {
+      candidate = normalizeUsername(`user_${crypto.randomInt(1000, 9999)}`);
+    }
+
+    const existing = await pool.query('SELECT id FROM users WHERE username = $1', [candidate]);
+    if (existing.rows.length === 0) {
+      return candidate;
+    }
+
+    const suffix = crypto.randomInt(1000, 9999);
+    const trimmed = candidate.slice(0, Math.max(3, 20 - String(suffix).length));
+    candidate = `${trimmed}${suffix}`;
+  }
+
+  return `user${crypto.randomInt(100000, 999999)}`;
+};
+
+const ensureAccountActive = (user) => {
+  const supportEmail = process.env.SUPPORT_EMAIL || 'support@example.com';
+  if (user.is_banned) {
+    throw {
+      status: 403,
+      message: `This user is banned. Please contact support at ${supportEmail}.`,
+      code: 'USER_BANNED'
+    };
+  }
+
+  if (user.locked_until && new Date(user.locked_until) > new Date()) {
+    throw {
+      status: 403,
+      message: 'Account is temporarily locked. Please try again later.',
+      code: 'ACCOUNT_LOCKED'
+    };
+  }
+};
 
 export const registerUser = async (username, email, password) => {
   // Validate inputs
@@ -46,7 +96,6 @@ export const registerUser = async (username, email, password) => {
 };
 
 export const loginUser = async (identifier, password) => {
-  const supportEmail = process.env.SUPPORT_EMAIL || 'support@example.com';
   // Find user by email or username
   const result = await pool.query(
     `SELECT id, username, email, password_hash, role, is_banned, avatar_url,
@@ -61,21 +110,7 @@ export const loginUser = async (identifier, password) => {
   }
 
   const user = result.rows[0];
-  if (user.is_banned) {
-    throw {
-      status: 403,
-      message: `This user is banned. Please contact support at ${supportEmail}.`,
-      code: 'USER_BANNED'
-    };
-  }
-
-  if (user.locked_until && new Date(user.locked_until) > new Date()) {
-    throw {
-      status: 403,
-      message: 'Account is temporarily locked. Please try again later.',
-      code: 'ACCOUNT_LOCKED'
-    };
-  }
+  ensureAccountActive(user);
 
   // Compare password
   const isMatch = await comparePassword(password, user.password_hash);
@@ -104,6 +139,67 @@ export const loginUser = async (identifier, password) => {
   }
 
   return sanitizeUser(user);
+};
+
+export const findOrCreateGoogleUser = async ({ googleId, email, name, picture }) => {
+  if (!googleId || !email) {
+    throw { status: 400, message: 'Missing Google account details', code: 'MISSING_GOOGLE_DETAILS' };
+  }
+
+  const existingGoogle = await pool.query(
+    `SELECT id, username, email, role, is_banned, locked_until, auth_provider, google_id, profile_picture_url
+     FROM users
+     WHERE google_id = $1`,
+    [googleId]
+  );
+
+  if (existingGoogle.rows.length > 0) {
+    const user = existingGoogle.rows[0];
+    ensureAccountActive(user);
+    return sanitizeUser(user);
+  }
+
+  const existingEmail = await pool.query(
+    `SELECT id, username, email, role, is_banned, locked_until, auth_provider, google_id, profile_picture_url
+     FROM users
+     WHERE email = $1`,
+    [email]
+  );
+
+  if (existingEmail.rows.length > 0) {
+    const user = existingEmail.rows[0];
+    ensureAccountActive(user);
+
+    if (user.google_id && user.google_id !== googleId) {
+      throw { status: 409, message: 'Google account already linked', code: 'GOOGLE_ACCOUNT_CONFLICT' };
+    }
+
+    const updateResult = await pool.query(
+      `UPDATE users
+       SET google_id = $1,
+           auth_provider = 'google',
+           profile_picture_url = COALESCE(profile_picture_url, $2)
+       WHERE id = $3
+       RETURNING id, username, email, role, auth_provider, google_id, profile_picture_url, created_at`,
+      [googleId, picture || null, user.id]
+    );
+
+    return sanitizeUser(updateResult.rows[0]);
+  }
+
+  const baseUsername = name || email.split('@')[0];
+  const username = await createUniqueUsername(baseUsername);
+  const randomPassword = crypto.randomBytes(32).toString('hex');
+  const passwordHash = await hashPassword(randomPassword);
+
+  const result = await pool.query(
+    `INSERT INTO users (username, email, password_hash, role, auth_provider, google_id, profile_picture_url)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING id, username, email, role, auth_provider, google_id, profile_picture_url, created_at`,
+    [username, email, passwordHash, 'user', 'google', googleId, picture || null]
+  );
+
+  return sanitizeUser(result.rows[0]);
 };
 
 export const getUserById = async (userId) => {
