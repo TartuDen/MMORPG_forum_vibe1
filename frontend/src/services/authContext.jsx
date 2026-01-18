@@ -69,6 +69,23 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithGoogle = async (credential) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await authAPI.googleLogin(credential);
+      const { user } = response.data.data;
+      setUser(user);
+      return user;
+    } catch (err) {
+      const errorMessage = err.response?.data?.error || 'Google login failed';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = async () => {
     setLoading(true);
     try {
@@ -124,6 +141,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         updateProfile,
         uploadAvatar,
+        loginWithGoogle,
         isAuthenticated: !!user
       }}
     >

@@ -50,6 +50,8 @@ export const initializeDatabase = async () => {
         email VARCHAR(255) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         role VARCHAR(50) DEFAULT 'user' CHECK (role IN ('admin', 'moderator', 'user')),
+        auth_provider VARCHAR(50) DEFAULT 'local' CHECK (auth_provider IN ('local', 'google')),
+        google_id TEXT UNIQUE,
         is_banned BOOLEAN DEFAULT false,
         banned_at TIMESTAMP,
         banned_reason TEXT,
@@ -66,6 +68,8 @@ export const initializeDatabase = async () => {
     `);
     await pool.query(`
       ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS auth_provider VARCHAR(50) DEFAULT 'local' CHECK (auth_provider IN ('local', 'google')),
+        ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE,
         ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false,
         ADD COLUMN IF NOT EXISTS banned_at TIMESTAMP,
         ADD COLUMN IF NOT EXISTS banned_reason TEXT,
@@ -245,6 +249,7 @@ export const initializeDatabase = async () => {
     // Create indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_games_name ON games(name);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_forums_game_id ON forums(game_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_forums_display_order ON forums(display_order);`);

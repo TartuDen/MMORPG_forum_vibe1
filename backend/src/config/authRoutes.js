@@ -1,7 +1,8 @@
 import express from 'express';
 import crypto from 'node:crypto';
 import multer from 'multer';
-import { registerUser, loginUser, getUserById, updateUser } from '../modules/users.js';
+import { OAuth2Client } from 'google-auth-library';
+import { registerUser, loginUser, getUserById, updateUser, findOrCreateGoogleUser } from '../modules/users.js';
 import { generateToken } from '../utils/jwt.js';
 import { authenticate } from '../middleware/auth.js';
 import { authLimiter } from '../middleware/rateLimit.js';
@@ -14,6 +15,8 @@ const router = express.Router();
 const ACCESS_COOKIE_NAME = 'access_token';
 const REFRESH_COOKIE_NAME = 'refresh_token';
 const MAX_AVATAR_BYTES = 100 * 1024;
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
 const avatarUpload = multer({
   storage: multer.memoryStorage(),
@@ -115,6 +118,24 @@ const issueTokens = async (userId, req, res) => {
 const getRefreshTokenFromRequest = (req) => {
   const cookies = parseCookies(req.headers.cookie);
   return cookies[REFRESH_COOKIE_NAME];
+};
+
+const verifyGoogleCredential = async (credential) => {
+  if (!googleClient) {
+    throw { status: 500, message: 'Google OAuth is not configured', code: 'GOOGLE_OAUTH_NOT_CONFIGURED' };
+  }
+
+  const ticket = await googleClient.verifyIdToken({
+    idToken: credential,
+    audience: GOOGLE_CLIENT_ID
+  });
+
+  const payload = ticket.getPayload();
+  if (!payload) {
+    throw { status: 401, message: 'Invalid Google token', code: 'INVALID_GOOGLE_TOKEN' };
+  }
+
+  return payload;
 };
 
 // Register
@@ -266,6 +287,48 @@ router.post('/refresh', authLimiter, async (req, res, next) => {
     res.status(200).json({
       data: { csrfToken },
       message: 'Token refreshed'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Google OAuth (ID token)
+router.post('/google', authLimiter, async (req, res, next) => {
+  try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({
+        error: 'Missing Google credential',
+        code: 'MISSING_GOOGLE_CREDENTIAL'
+      });
+    }
+
+    const payload = await verifyGoogleCredential(credential);
+    const { sub, email, email_verified: emailVerified, name, picture } = payload;
+
+    if (!email || emailVerified === false) {
+      return res.status(400).json({
+        error: 'Google account email is not verified',
+        code: 'GOOGLE_EMAIL_NOT_VERIFIED'
+      });
+    }
+
+    const user = await findOrCreateGoogleUser({
+      googleId: sub,
+      email,
+      name,
+      picture
+    });
+    const csrfToken = await issueTokens(user.id, req, res);
+
+    res.status(200).json({
+      data: {
+        user,
+        csrfToken
+      },
+      message: 'Google login successful'
     });
   } catch (error) {
     next(error);

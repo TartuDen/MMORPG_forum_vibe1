@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../services/authContext';
 import '../styles/auth.css';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -10,8 +10,10 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register, error: authError } = useAuth();
+  const { register, loginWithGoogle, error: authError } = useAuth();
   const navigate = useNavigate();
+  const googleButtonRef = useRef(null);
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   // Watch for auth context errors
   useEffect(() => {
@@ -19,6 +21,58 @@ export default function RegisterPage() {
       setError(authError);
     }
   }, [authError]);
+
+  const handleGoogleCredential = async (response) => {
+    setError('');
+    setLoading(true);
+
+    try {
+      await loginWithGoogle(response?.credential);
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Google login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!googleClientId || !googleButtonRef.current) {
+      return undefined;
+    }
+
+    let intervalId;
+    const initializeGoogle = () => {
+      if (!window.google?.accounts?.id) {
+        return false;
+      }
+
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: handleGoogleCredential
+      });
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: 'outline',
+        size: 'large',
+        width: 320
+      });
+      return true;
+    };
+
+    if (!initializeGoogle()) {
+      intervalId = setInterval(() => {
+        if (initializeGoogle()) {
+          clearInterval(intervalId);
+        }
+      }, 250);
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [googleClientId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -52,6 +106,15 @@ export default function RegisterPage() {
         <h2>Register</h2>
 
         {error && <div className="error-message">{error}</div>}
+
+        {googleClientId ? (
+          <div className="google-auth">
+            <div ref={googleButtonRef} className="google-button" />
+            <div className="auth-divider">
+              <span>or</span>
+            </div>
+          </div>
+        ) : null}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
