@@ -309,6 +309,12 @@ export const initializeDatabase = async () => {
     `);
 
     await pool.query(`
+      UPDATE games
+      SET tags = array_remove(tags, 'mmx')
+      WHERE name = 'Aion' AND tags @> ARRAY['mmx']
+    `);
+
+    await pool.query(`
       INSERT INTO forums (game_id, name, description)
       SELECT g.id, 'General Discussion', 'Site-wide general discussion'
       FROM games g
@@ -341,6 +347,60 @@ export const initializeDatabase = async () => {
          ON CONFLICT (username) DO NOTHING`,
         ['pomogB', 'pomogb@example.com', passwordHash, 'user']
       );
+
+      const communityForumResult = await pool.query(
+        `SELECT f.id
+         FROM forums f
+         JOIN games g ON f.game_id = g.id
+         WHERE g.name = 'Community' AND f.name = 'General Discussion'
+         LIMIT 1`
+      );
+      const communityForumId = communityForumResult.rows[0]?.id;
+
+      const seedUsersResult = await pool.query(
+        `SELECT id, username
+         FROM users
+         WHERE username IN ('pomogA', 'pomogB')`
+      );
+      const seedUserMap = seedUsersResult.rows.reduce((acc, row) => {
+        acc[row.username] = row.id;
+        return acc;
+      }, {});
+
+      if (communityForumId && seedUserMap.pomogA && seedUserMap.pomogB) {
+        const threadsToSeed = [
+          {
+            title: 'Welcome to the community hub',
+            content: 'Introduce yourself, share your main MMO, and say what you are currently grinding.',
+            username: 'pomogA'
+          },
+          {
+            title: 'What are you playing this week?',
+            content: 'Drop your weekly MMO plans, raids, or goals so others can join or cheer you on.',
+            username: 'pomogB'
+          }
+        ];
+
+        for (const thread of threadsToSeed) {
+          const userId = seedUserMap[thread.username];
+          const insertResult = await pool.query(
+            `INSERT INTO threads (forum_id, user_id, title, content)
+             SELECT $1, $2, $3::varchar, $4::text
+             WHERE NOT EXISTS (
+               SELECT 1 FROM threads WHERE forum_id = $1 AND title = $3::varchar
+             )
+             RETURNING id`,
+            [communityForumId, userId, thread.title, thread.content]
+          );
+
+          if (insertResult.rows.length > 0) {
+            await pool.query(
+              'UPDATE users SET total_posts = total_posts + 1 WHERE id = $1',
+              [userId]
+            );
+          }
+        }
+      }
     }
 
     console.log('Database schema initialized successfully!');

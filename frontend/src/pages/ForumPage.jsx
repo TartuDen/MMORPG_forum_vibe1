@@ -41,6 +41,7 @@ export default function ForumPage() {
   if (!forum) return <div className="container"><p>Forum not found</p></div>;
 
   const isAdmin = isAuthenticated && user?.role === 'admin';
+  const isCommunityForum = forum.game_name === 'Community';
 
   const handleDeleteForum = async () => {
     if (!window.confirm('Delete this forum and all its threads?')) return;
@@ -57,16 +58,16 @@ export default function ForumPage() {
       <div className="forum-header">
         <button className="back-btn" onClick={() => navigate('/')}>Back to Forums</button>
         <div
-          className="forum-hero"
+          className={`forum-hero${forum.game_icon_url ? ' has-bg' : ''}`}
           style={forum.game_icon_url ? { backgroundImage: `url(${forum.game_icon_url})` } : undefined}
         >
           <div className="forum-hero-content">
             <span className="forum-game-name">{forum.game_name || 'Game Forum'}</span>
             <h2>{forum.name}</h2>
-            {forum.game_description && (
+            {!isCommunityForum && forum.game_description && (
               <p className="forum-game-description">{forum.game_description}</p>
             )}
-            <p className="forum-forum-description">{forum.description}</p>
+            {!isCommunityForum && <p className="forum-forum-description">{forum.description}</p>}
           </div>
         </div>
         {isAdmin && (

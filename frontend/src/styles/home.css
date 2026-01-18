@@ -70,6 +70,8 @@
   cursor: pointer;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.2);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background-size: cover;
+  background-position: center;
 }
 
 .general-forum-card:hover {
@@ -77,26 +79,97 @@
   box-shadow: 0 16px 30px rgba(15, 23, 42, 0.28);
 }
 
-.general-forum-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-  flex-wrap: wrap;
-}
-
 .general-forum-label {
   font-size: 1.1rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  color: #f8fafc;
+  text-shadow:
+    -1px -1px 0 rgba(15, 23, 42, 0.9),
+    1px -1px 0 rgba(15, 23, 42, 0.9),
+    -1px 1px 0 rgba(15, 23, 42, 0.9),
+    1px 1px 0 rgba(15, 23, 42, 0.9),
+    0 3px 10px rgba(15, 23, 42, 0.75);
 }
 
-.general-forum-card p {
-  margin: 0;
+.general-forum-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.general-forum-title {
+  margin: 0.5rem 0 0.35rem 0;
+  font-size: 1.6rem;
+  color: #f8fafc;
+  text-shadow:
+    -1px -1px 0 rgba(15, 23, 42, 0.9),
+    1px -1px 0 rgba(15, 23, 42, 0.9),
+    -1px 1px 0 rgba(15, 23, 42, 0.9),
+    1px 1px 0 rgba(15, 23, 42, 0.9),
+    0 4px 12px rgba(15, 23, 42, 0.75);
+}
+
+.general-forum-description {
+  margin: 0 0 0.75rem 0;
   color: #e2e8f0;
   font-size: 0.95rem;
+}
+
+.general-forum-action {
+  background: rgba(248, 250, 252, 0.14);
+  border: 1px solid rgba(248, 250, 252, 0.35);
+  color: #f8fafc;
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.general-forum-action:hover {
+  background: rgba(248, 250, 252, 0.25);
+  border-color: rgba(248, 250, 252, 0.6);
+  transform: translateY(-1px);
+}
+
+.general-forum-threads {
+  margin-top: 1.25rem;
+  background: rgba(15, 23, 42, 0.55);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.general-forum-threads-header {
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(226, 232, 240, 0.8);
+}
+
+.general-thread {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.general-thread-title {
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.general-thread-meta {
+  font-size: 0.8rem;
+  color: rgba(226, 232, 240, 0.75);
+}
+
+.general-thread.muted {
+  color: rgba(226, 232, 240, 0.7);
+  font-size: 0.85rem;
 }
 
 .games-section {
@@ -229,7 +302,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(248, 250, 252, 0.92), rgba(255, 255, 255, 0.85));
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.46), rgba(255, 255, 255, 0.43));
   transition: opacity 0.2s ease;
 }
 
@@ -268,14 +341,24 @@
 
 .game-card p {
   margin: 0;
-  color: #4b5563;
+  color: #1f2937;
   font-size: 0.9rem;
+  text-shadow: 0 1px 6px rgba(15, 23, 42, 0.35);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.4rem 0.55rem;
+  border-radius: 10px;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
 }
 
 .game-card-hint {
   margin-top: auto;
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: #1f2937;
+  text-shadow: 0 1px 6px rgba(15, 23, 42, 0.35);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.3rem 0.5rem;
+  border-radius: 999px;
+  width: fit-content;
 }
 
 .forum-card {

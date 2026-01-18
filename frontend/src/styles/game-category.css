@@ -45,12 +45,33 @@
   padding: 1.25rem;
   cursor: pointer;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  overflow: hidden;
 }
 
 .category-card:hover {
   border-color: var(--color-primary);
   box-shadow: 0 10px 20px rgba(99, 102, 241, 0.12);
   transform: translateY(-2px);
+}
+
+.category-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.46), rgba(255, 255, 255, 0.43));
+  transition: opacity 0.2s ease;
+}
+
+.category-card:hover::before {
+  opacity: 0.8;
+}
+
+.category-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .category-card-header h3 {
@@ -60,8 +81,13 @@
 
 .category-card p {
   margin: 0;
-  color: #4b5563;
+  color: #1f2937;
   font-size: 0.9rem;
+  text-shadow: 0 1px 6px rgba(15, 23, 42, 0.35);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.4rem 0.55rem;
+  border-radius: 10px;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
 }
 
 .tag-row {

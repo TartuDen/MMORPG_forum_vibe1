@@ -69,6 +69,7 @@ export default function GameCategoryPage() {
               <div
                 key={game.id}
                 className="category-card"
+                style={game.icon_url ? { backgroundImage: `url(${game.icon_url})` } : undefined}
                 onClick={() => forum && navigate(`/forums/${forum.id}`)}
                 role="button"
                 tabIndex={0}
