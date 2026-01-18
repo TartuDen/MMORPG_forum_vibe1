@@ -49,6 +49,7 @@ export default function CreateForumPage() {
     icon_url: '',
     website_url: ''
   });
+  const iconUrlLimit = 500;
 
   const fetchGames = async () => {
     try {
@@ -370,6 +371,12 @@ export default function CreateForumPage() {
                   onChange={(e) => handleGameInputChange(e, 'create')}
                   placeholder="https://..."
                 />
+                <span className={`char-counter ${gameForm.icon_url.length > iconUrlLimit ? 'warn' : ''}`}>
+                  {gameForm.icon_url.length}/{iconUrlLimit}
+                </span>
+                {gameForm.icon_url.length > iconUrlLimit && (
+                  <span className="form-hint warn">Icon URL is too long and will be rejected.</span>
+                )}
               </div>
 
               <div className="form-group">
@@ -479,6 +486,12 @@ export default function CreateForumPage() {
                 onChange={(e) => handleGameInputChange(e, 'edit')}
                 placeholder="https://..."
               />
+              <span className={`char-counter ${gameEdit.icon_url.length > iconUrlLimit ? 'warn' : ''}`}>
+                {gameEdit.icon_url.length}/{iconUrlLimit}
+              </span>
+              {gameEdit.icon_url.length > iconUrlLimit && (
+                <span className="form-hint warn">Icon URL is too long and will be rejected.</span>
+              )}
             </div>
 
             <div className="form-group">

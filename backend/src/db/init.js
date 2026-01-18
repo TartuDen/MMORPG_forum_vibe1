@@ -312,15 +312,17 @@ export const initializeDatabase = async () => {
       `);
     }
 
-    await pool.query(`
-      INSERT INTO game_tags (name)
-      SELECT unnest(ARRAY[
-        'mmorpg', 'mmo', 'pve', 'pvp', 'raid', 'sandbox', 'story', 'crafting',
-        'hardcore', 'casual', 'open-world', 'dungeon', 'online', 'single',
-        'solo', 'party', 'full-loot'
-      ])
-      ON CONFLICT (name) DO NOTHING
-    `);
+    const tagCount = await pool.query('SELECT COUNT(*) as total FROM game_tags');
+    if (parseInt(tagCount.rows[0].total, 10) === 0) {
+      await pool.query(`
+        INSERT INTO game_tags (name)
+        SELECT unnest(ARRAY[
+          'mmorpg', 'mmo', 'pve', 'pvp', 'raid', 'sandbox', 'story', 'crafting',
+          'hardcore', 'casual', 'open-world', 'dungeon', 'online', 'single',
+          'solo', 'party', 'full-loot'
+        ])
+      `);
+    }
 
     await pool.query(`
       INSERT INTO games (name, description, tags, icon_url, website_url)

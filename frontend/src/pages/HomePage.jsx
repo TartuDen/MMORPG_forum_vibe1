@@ -196,9 +196,7 @@ export default function HomePage() {
                   }
                 }}
               >
-                <div className="game-card-header">
-                  <h4>{game.name}</h4>
-                </div>
+                <div className="game-card-title">{game.name}</div>
                 {Array.isArray(game.tags) && game.tags.length > 0 ? (
                   <div className="tag-row">
                     {game.tags.slice(0, 4).map((tag) => (
