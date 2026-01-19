@@ -9,7 +9,6 @@
 - Full-stack forum (React + Vite frontend, Node/Express backend, Postgres DB).
 - Authentication: JWT access + refresh tokens, login via email OR username, register via email.
 - Roles: admin/moderator/user; admin-only actions enforced in backend and UI.
-- Demo seed: games, forums, admin user (pomogA/Plot123123), regular user (pomogB/Plot123123).
 
 ---
 
@@ -530,7 +529,7 @@ git pull origin main
 
 ---
 
-**Last Updated:** January 18, 2026  
+**Last Updated:** January 20, 2026  
 **Status:** MVP Complete - Forums, threads, comments, profiles, avatars, search, direct messages
 
 
