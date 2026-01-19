@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const CSRF_STORAGE_KEY = 'csrf_token';
 
 const getCookie = (name) => {
   const value = `; ${document.cookie}`;
@@ -9,6 +10,20 @@ const getCookie = (name) => {
     return parts.pop().split(';').shift();
   }
   return null;
+};
+
+const getStoredCsrfToken = () => {
+  if (typeof window === 'undefined') return null;
+  return window.sessionStorage.getItem(CSRF_STORAGE_KEY);
+};
+
+const setStoredCsrfToken = (token) => {
+  if (typeof window === 'undefined') return;
+  if (!token) {
+    window.sessionStorage.removeItem(CSRF_STORAGE_KEY);
+    return;
+  }
+  window.sessionStorage.setItem(CSRF_STORAGE_KEY, token);
 };
 
 // Create axios instance
@@ -30,7 +45,7 @@ apiClient.interceptors.request.use((config) => {
 
   const method = (config.method || 'get').toLowerCase();
   if (!['get', 'head', 'options'].includes(method)) {
-    const csrfToken = getCookie('csrf_token');
+    const csrfToken = getCookie('csrf_token') || getStoredCsrfToken();
     if (csrfToken) {
       config.headers['X-CSRF-Token'] = csrfToken;
     }
@@ -40,7 +55,13 @@ apiClient.interceptors.request.use((config) => {
 
 // Handle token refresh on 401
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const csrfToken = response?.data?.data?.csrfToken;
+    if (csrfToken) {
+      setStoredCsrfToken(csrfToken);
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
     const requestUrl = originalRequest?.url || '';
@@ -58,7 +79,7 @@ apiClient.interceptors.response.use(
 
       try {
         const csrfToken = getCookie('csrf_token');
-        await axios.post(
+        const refreshResponse = await axios.post(
           `${API_BASE_URL}/auth/refresh`,
           {},
           {
@@ -66,6 +87,10 @@ apiClient.interceptors.response.use(
             headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {}
           }
         );
+        const newCsrfToken = refreshResponse?.data?.data?.csrfToken;
+        if (newCsrfToken) {
+          setStoredCsrfToken(newCsrfToken);
+        }
         return apiClient(originalRequest);
       } catch (refreshError) {
         if (window.location.pathname !== '/login') {
