@@ -105,6 +105,13 @@
   cursor: pointer;
 }
 
+.search-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
 .search-role {
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -167,6 +174,10 @@
   align-items: center;
   gap: 6px;
   font-weight: 700;
+}
+
+.conversation-title .presence-dot {
+  margin-left: 2px;
 }
 
 .conversation-preview {

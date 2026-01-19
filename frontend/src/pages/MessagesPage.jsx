@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { authAPI, messagesAPI, searchAPI } from '../services/api';
 import { useAuth } from '../services/authContext';
+import { usePresence } from '../services/presenceContext';
 import '../styles/messages.css';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_IO_URL || 'http://localhost:5000';
@@ -15,6 +16,7 @@ const formatTime = (value) => {
 
 export default function MessagesPage() {
   const { user } = useAuth();
+  const { onlineUserIds } = usePresence();
   const [conversations, setConversations] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -270,7 +272,10 @@ export default function MessagesPage() {
                     className="search-result"
                     onClick={() => handleStartFromSearch(result.id)}
                   >
-                    <span>{result.username}</span>
+                    <span className="search-user">
+                      <span className={`presence-dot ${onlineUserIds.has(result.id) ? '' : 'offline'}`} />
+                      {result.username}
+                    </span>
                     <span className="search-role">{result.role}</span>
                   </button>
                 ))}
@@ -300,6 +305,7 @@ export default function MessagesPage() {
                     <div className="conversation-info">
                       <div className="conversation-title">
                         <span>{conv.other_username}</span>
+                        <span className={`presence-dot ${onlineUserIds.has(conv.other_user_id) ? '' : 'offline'}`} />
                         {unread && <span className="unread-dot">{conv.unread_count}</span>}
                       </div>
                       <div className="conversation-preview">

@@ -8,3 +8,22 @@
 * {
   box-sizing: border-box;
 }
+
+.scroll-top-btn {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  border: none;
+  border-radius: 999px;
+  padding: 0.7rem 1rem;
+  background: var(--color-dark);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.2);
+  z-index: 200;
+}
+
+.scroll-top-btn:hover {
+  background: #111827;
+}

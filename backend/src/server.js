@@ -16,6 +16,7 @@ await initializeDatabase().catch(err => {
 });
 
 const server = http.createServer(app);
+const onlineUsers = new Map();
 
 const parseAllowedOrigins = () => {
   const origins = new Set();
@@ -50,6 +51,10 @@ const io = new Server(server, {
   }
 });
 
+const broadcastPresence = () => {
+  io.emit('presence:update', { userIds: Array.from(onlineUsers.keys()) });
+};
+
 io.use((socket, next) => {
   const cookies = parseCookies(socket.handshake.headers.cookie);
   const token = socket.handshake.auth?.token || cookies.access_token;
@@ -67,6 +72,10 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
+  const currentCount = onlineUsers.get(socket.userId) || 0;
+  onlineUsers.set(socket.userId, currentCount + 1);
+  broadcastPresence();
+
   socket.join(`user:${socket.userId}`);
 
   socket.on('thread:join', (threadId) => {
@@ -81,6 +90,16 @@ io.on('connection', (socket) => {
     if (!Number.isNaN(threadIdValue)) {
       socket.leave(`thread:${threadIdValue}`);
     }
+  });
+
+  socket.on('disconnect', () => {
+    const count = onlineUsers.get(socket.userId) || 0;
+    if (count <= 1) {
+      onlineUsers.delete(socket.userId);
+    } else {
+      onlineUsers.set(socket.userId, count - 1);
+    }
+    broadcastPresence();
   });
 });
 

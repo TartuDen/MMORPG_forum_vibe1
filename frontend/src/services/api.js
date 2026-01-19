@@ -138,7 +138,11 @@ export const usersAPI = {
   getUser: (id) =>
     apiClient.get(`/users/${id}`),
   getUsers: (page = 1, limit = 10) =>
-    apiClient.get(`/users?page=${page}&limit=${limit}`)
+    apiClient.get(`/users?page=${page}&limit=${limit}`),
+  getAdminOverview: (page = 1, limit = 50) =>
+    apiClient.get(`/users/admin/overview?page=${page}&limit=${limit}`),
+  updateUserRole: (userId, role) =>
+    apiClient.put(`/users/${userId}/role`, { role })
 };
 
 export const searchAPI = {

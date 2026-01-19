@@ -38,6 +38,23 @@
   background-color: #d41d7a;
 }
 
+.home-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 2rem;
+  align-items: start;
+}
+
+.home-layout.full {
+  grid-template-columns: 1fr;
+}
+
+.home-sidebar {
+  position: sticky;
+  top: 96px;
+  align-self: start;
+}
+
 .create-btn-alt {
   background-color: var(--color-primary);
   color: white;
@@ -181,6 +198,37 @@
   color: var(--color-dark);
 }
 
+.alphabet-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.75rem 0 1.25rem 0;
+}
+
+.alphabet-btn {
+  border: 1px solid var(--color-border);
+  background: #fff;
+  color: #1f2937;
+  border-radius: 6px;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.alphabet-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.12);
+}
+
+.alphabet-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 .section-subtitle {
   color: #666;
   margin: 0 0 1.5rem 0;
@@ -295,6 +343,7 @@
   background-position: center;
   position: relative;
   overflow: hidden;
+  scroll-margin-top: 96px;
 }
 
 .game-card.compact {
@@ -305,7 +354,8 @@
   display: none;
 }
 
-.game-card:hover {
+.game-card:hover,
+.game-card:focus-visible {
   transform: translateY(-2px);
   border-color: var(--color-secondary);
   box-shadow: 0 10px 20px rgba(236, 72, 153, 0.15);
@@ -366,6 +416,111 @@
   padding: 0.3rem 0.5rem;
   border-radius: 999px;
   width: fit-content;
+}
+
+.online-users-card {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.online-users-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.online-users-header h3 {
+  margin: 0;
+  color: var(--color-dark);
+}
+
+.online-count {
+  background: #ecfeff;
+  color: #155e75;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.online-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.online-user {
+  border: 1px solid var(--color-border);
+  background: #fff;
+  border-radius: 10px;
+  padding: 0.45rem 0.6rem;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  text-align: left;
+}
+
+.online-user:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+}
+
+.online-user-name {
+  font-weight: 600;
+  color: #111827;
+}
+
+.online-user-role {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+}
+
+.online-users-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.link-btn {
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+.muted {
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 1100px) {
+  .home-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .home-sidebar {
+    position: static;
+  }
 }
 
 .forum-card {

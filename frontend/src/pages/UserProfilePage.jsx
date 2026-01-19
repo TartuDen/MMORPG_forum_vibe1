@@ -59,7 +59,7 @@ export default function UserProfilePage() {
     return (
       <div className="container">
         <div className="error-message">{error}</div>
-        <button className="btn-back" onClick={() => navigate(-1)}>ƒ+? Back</button>
+        <button className="btn-back" onClick={() => navigate(-1)}>Back</button>
       </div>
     );
   }
@@ -68,7 +68,7 @@ export default function UserProfilePage() {
     return (
       <div className="container">
         <div className="error-message">User not found</div>
-        <button className="btn-back" onClick={() => navigate(-1)}>ƒ+? Back</button>
+        <button className="btn-back" onClick={() => navigate(-1)}>Back</button>
       </div>
     );
   }
@@ -143,7 +143,7 @@ export default function UserProfilePage() {
 
   return (
     <div className="container">
-      <button className="btn-back" onClick={() => navigate(-1)}>ƒ+? Back</button>
+      <button className="btn-back" onClick={() => navigate(-1)}>Back</button>
       
       <div className="profile-header">
         <div className="profile-avatar">

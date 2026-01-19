@@ -7,6 +7,55 @@ import { writeLimiter } from '../middleware/rateLimit.js';
 
 const router = express.Router();
 
+// Admin user overview (paginated)
+router.get('/admin/overview', authenticate, authorize('admin'), async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+    const offset = (page - 1) * limit;
+
+    const result = await pool.query(
+      `
+        SELECT
+          u.id,
+          u.username,
+          u.email,
+          u.role,
+          u.total_posts,
+          u.is_email_verified,
+          u.is_banned,
+          u.created_at,
+          (SELECT COUNT(*) FROM threads t WHERE t.user_id = u.id) AS thread_count,
+          (SELECT COUNT(*) FROM comments c WHERE c.user_id = u.id AND c.is_deleted = false) AS comment_count,
+          GREATEST(
+            COALESCE((SELECT MAX(created_at) FROM threads t WHERE t.user_id = u.id), '1970-01-01'::timestamp),
+            COALESCE((SELECT MAX(created_at) FROM comments c WHERE c.user_id = u.id), '1970-01-01'::timestamp)
+          ) AS last_activity_at
+        FROM users u
+        ORDER BY last_activity_at DESC NULLS LAST, u.created_at DESC
+        LIMIT $1 OFFSET $2
+      `,
+      [limit, offset]
+    );
+
+    const countResult = await pool.query('SELECT COUNT(*) as total FROM users');
+    const total = parseInt(countResult.rows[0].total, 10);
+
+    res.status(200).json({
+      data: result.rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      },
+      message: 'Admin user overview retrieved'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Get user by ID
 router.get('/:id', cacheResponse(30000), async (req, res, next) => {
   try {

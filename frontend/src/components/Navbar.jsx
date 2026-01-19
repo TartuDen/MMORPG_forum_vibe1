@@ -7,6 +7,7 @@ export default function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const isAdmin = isAuthenticated && user?.role === 'admin';
 
   const handleLogout = () => {
     logout();
@@ -25,7 +26,7 @@ export default function Navbar() {
     <nav className="navbar">
       <div className="navbar-container">
         <div className="navbar-brand">
-          <h1 onClick={() => navigate('/')}>🎮 MMO Forum</h1>
+          <h1 onClick={() => navigate('/')}>Not-A-Forum</h1>
         </div>
 
         <form className="navbar-search" onSubmit={handleSearch}>
@@ -50,11 +51,25 @@ export default function Navbar() {
                 Welcome, {user?.username}!
               </span>
               <button
+                onClick={() => navigate('/users')}
+                className="navbar-btn login-btn"
+              >
+                Users
+              </button>
+              <button
                 onClick={() => navigate('/messages')}
                 className="navbar-btn login-btn"
               >
                 Messages
               </button>
+              {isAdmin && (
+                <button
+                  onClick={() => navigate('/admin/users')}
+                  className="navbar-btn register-btn"
+                >
+                  Admin
+                </button>
+              )}
               <button onClick={handleLogout} className="navbar-btn logout-btn">
                 Logout
               </button>

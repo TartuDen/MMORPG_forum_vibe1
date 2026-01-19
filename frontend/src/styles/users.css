@@ -1,0 +1,95 @@
+.users-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.users-header h2 {
+  margin: 0 0 0.25rem 0;
+}
+
+.users-header p {
+  margin: 0;
+  color: #6b7280;
+}
+
+.users-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.users-nav-btn {
+  border: 1px solid var(--color-border);
+  background: #fff;
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.users-nav-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.users-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.user-card {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.user-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+  transform: translateY(-2px);
+}
+
+.user-card-header {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.user-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 700;
+}
+
+.user-name {
+  font-size: 0.95rem;
+}
+
+.user-card-body {
+  margin-top: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  color: #6b7280;
+  font-size: 0.8rem;
+}
+
+.empty-state {
+  color: #6b7280;
+  text-align: center;
+  padding: 1rem 0;
+}
+
+@media (max-width: 700px) {
+  .users-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
