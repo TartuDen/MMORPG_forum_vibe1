@@ -61,6 +61,31 @@
   margin-top: 0.5rem;
 }
 
+.tag-paste {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.tag-paste input {
+  flex: 1;
+}
+
+.tag-paste button {
+  padding: 0.65rem 1rem;
+  border-radius: 6px;
+  border: none;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.tag-paste button:hover {
+  background: #5558e3;
+}
+
 .tag-option {
   display: inline-flex;
   align-items: center;

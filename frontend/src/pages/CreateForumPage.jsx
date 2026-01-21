@@ -22,6 +22,9 @@ export default function CreateForumPage() {
   const [games, setGames] = useState([]);
   const [availableTags, setAvailableTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
+  const [tagPasteCreate, setTagPasteCreate] = useState('');
+  const [tagPasteEdit, setTagPasteEdit] = useState('');
+  const [tagPasteFeedback, setTagPasteFeedback] = useState({ create: '', edit: '' });
   const [tagLoading, setTagLoading] = useState(false);
   const [tagError, setTagError] = useState('');
   const [tagSuccess, setTagSuccess] = useState('');
@@ -126,6 +129,53 @@ export default function CreateForumPage() {
         tags: exists ? prev.tags.filter(item => item !== tag) : [...prev.tags, tag]
       };
     });
+  };
+
+  const parseTagList = (value) => {
+    if (!value) return [];
+    const unique = new Set();
+    value
+      .split(/[,;\n]/)
+      .map((item) => normalizeTag(item))
+      .filter(Boolean)
+      .forEach((tag) => unique.add(tag));
+    return Array.from(unique);
+  };
+
+  const handlePasteTags = (type) => {
+    const value = type === 'edit' ? tagPasteEdit : tagPasteCreate;
+    const setter = type === 'edit' ? setGameEdit : setGameForm;
+    const tags = parseTagList(value);
+    if (tags.length === 0) {
+      setTagPasteFeedback((prev) => ({ ...prev, [type]: 'Enter comma-separated tags.' }));
+      return;
+    }
+
+    const availableSet = new Set(availableTags);
+    const matches = tags.filter((tag) => availableSet.has(tag));
+    const ignored = tags.filter((tag) => !availableSet.has(tag));
+
+    if (matches.length === 0) {
+      setTagPasteFeedback((prev) => ({ ...prev, [type]: 'No matching tags found.' }));
+      return;
+    }
+
+    setter((prev) => {
+      const next = new Set(prev.tags);
+      matches.forEach((tag) => next.add(tag));
+      return { ...prev, tags: Array.from(next) };
+    });
+
+    const ignoredMessage = ignored.length > 0 ? ` Ignored: ${ignored.join(', ')}` : '';
+    setTagPasteFeedback((prev) => ({
+      ...prev,
+      [type]: `Added ${matches.length} tag${matches.length === 1 ? '' : 's'}.${ignoredMessage}`
+    }));
+    if (type === 'edit') {
+      setTagPasteEdit('');
+    } else {
+      setTagPasteCreate('');
+    }
   };
 
   const handleAddTag = async (e) => {
@@ -347,6 +397,23 @@ export default function CreateForumPage() {
 
               <div className="form-group">
                 <label>Tags *</label>
+                <div className="tag-paste">
+                  <input
+                    type="text"
+                    value={tagPasteCreate}
+                    placeholder="Paste tags (comma separated)"
+                    onChange={(e) => {
+                      setTagPasteCreate(e.target.value);
+                      setTagPasteFeedback((prev) => ({ ...prev, create: '' }));
+                    }}
+                  />
+                  <button type="button" onClick={() => handlePasteTags('create')}>
+                    Apply tags
+                  </button>
+                </div>
+                {tagPasteFeedback.create && (
+                  <span className="form-hint">{tagPasteFeedback.create}</span>
+                )}
                 <div className="tag-grid">
                   {availableTags.map((tag) => (
                     <label key={tag} className="tag-option">
@@ -460,14 +527,31 @@ export default function CreateForumPage() {
               />
             </div>
 
-              <div className="form-group">
-                <label>Tags *</label>
-                <div className="tag-grid">
-                  {availableTags.map((tag) => (
-                    <label key={tag} className="tag-option">
-                      <input
-                        type="checkbox"
-                        checked={gameEdit.tags.includes(tag)}
+            <div className="form-group">
+              <label>Tags *</label>
+              <div className="tag-paste">
+                <input
+                  type="text"
+                  value={tagPasteEdit}
+                  placeholder="Paste tags (comma separated)"
+                  onChange={(e) => {
+                    setTagPasteEdit(e.target.value);
+                    setTagPasteFeedback((prev) => ({ ...prev, edit: '' }));
+                  }}
+                />
+                <button type="button" onClick={() => handlePasteTags('edit')}>
+                  Apply tags
+                </button>
+              </div>
+              {tagPasteFeedback.edit && (
+                <span className="form-hint">{tagPasteFeedback.edit}</span>
+              )}
+              <div className="tag-grid">
+                {availableTags.map((tag) => (
+                  <label key={tag} className="tag-option">
+                    <input
+                      type="checkbox"
+                      checked={gameEdit.tags.includes(tag)}
                       onChange={() => toggleTag(tag, 'edit')}
                     />
                     <span>{tag}</span>
