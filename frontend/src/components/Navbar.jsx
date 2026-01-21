@@ -117,7 +117,10 @@ export default function Navbar() {
     <nav className="navbar">
       <div className="navbar-container">
         <div className="navbar-brand">
-          <h1 onClick={() => navigate('/')}>Not-A-Forum</h1>
+          <h1 onClick={() => navigate('/')}>
+            <img src="/favicon.svg" alt="Not-A-Forum logo" className="navbar-logo" />
+            <span>Not-A-Forum</span>
+          </h1>
         </div>
 
         <form className="navbar-search" onSubmit={handleSearch} ref={searchRef}>
