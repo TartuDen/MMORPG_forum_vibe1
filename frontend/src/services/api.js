@@ -147,7 +147,9 @@ export const usersAPI = {
 
 export const searchAPI = {
   users: (query, page = 1, limit = 10) =>
-    apiClient.get(`/search/users?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`)
+    apiClient.get(`/search/users?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`),
+  suggestions: (query, limit = 8) =>
+    apiClient.get(`/search/suggestions?q=${encodeURIComponent(query)}&limit=${limit}`)
 };
 
 // Forums API

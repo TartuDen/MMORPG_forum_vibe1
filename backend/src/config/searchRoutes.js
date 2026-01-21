@@ -1,8 +1,46 @@
 import express from 'express';
-import { searchThreads, searchComments, searchUsers, searchForums } from '../modules/search.js';
+import { searchThreads, searchComments, searchUsers, searchForums, searchSuggestions } from '../modules/search.js';
 import { cacheResponse } from '../middleware/cache.js';
 
 const router = express.Router();
+const MIN_QUERY_LENGTH = 4;
+
+const getQueryError = (query) => {
+  if (!query || query.trim().length === 0) {
+    return { status: 400, error: 'Search query required', code: 'MISSING_QUERY' };
+  }
+  if (query.trim().length < MIN_QUERY_LENGTH) {
+    return {
+      status: 400,
+      error: `Query must be at least ${MIN_QUERY_LENGTH} characters`,
+      code: 'QUERY_TOO_SHORT'
+    };
+  }
+  if (query.length > 500) {
+    return { status: 400, error: 'Query too long', code: 'QUERY_TOO_LONG' };
+  }
+  return null;
+};
+
+// Search suggestions
+router.get('/suggestions', cacheResponse(8000), async (req, res, next) => {
+  try {
+    const { q, limit = 8 } = req.query;
+    const error = getQueryError(q);
+    if (error) {
+      return res.status(error.status).json({ error: error.error, code: error.code });
+    }
+
+    const safeLimit = Math.min(parseInt(limit) || 8, 20);
+    const results = await searchSuggestions(q.trim(), safeLimit);
+    res.status(200).json({
+      data: results,
+      message: 'Search suggestions'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Search threads
 router.get('/threads', cacheResponse(15000), async (req, res, next) => {
@@ -10,22 +48,13 @@ router.get('/threads', cacheResponse(15000), async (req, res, next) => {
     const { q, page = 1, limit = 10 } = req.query;
     const safeLimit = Math.min(parseInt(limit) || 10, 50);
 
-    if (!q || q.trim().length === 0) {
-      return res.status(400).json({
-        error: 'Search query required',
-        code: 'MISSING_QUERY'
-      });
-    }
-
-    if (q.length > 500) {
-      return res.status(400).json({
-        error: 'Query too long',
-        code: 'QUERY_TOO_LONG'
-      });
+    const error = getQueryError(q);
+    if (error) {
+      return res.status(error.status).json({ error: error.error, code: error.code });
     }
 
     const { results, pagination } = await searchThreads(
-      q,
+      q.trim(),
       parseInt(page),
       safeLimit
     );
@@ -46,15 +75,13 @@ router.get('/comments', cacheResponse(15000), async (req, res, next) => {
     const { q, page = 1, limit = 10 } = req.query;
     const safeLimit = Math.min(parseInt(limit) || 10, 50);
 
-    if (!q || q.trim().length === 0) {
-      return res.status(400).json({
-        error: 'Search query required',
-        code: 'MISSING_QUERY'
-      });
+    const error = getQueryError(q);
+    if (error) {
+      return res.status(error.status).json({ error: error.error, code: error.code });
     }
 
     const { results, pagination } = await searchComments(
-      q,
+      q.trim(),
       parseInt(page),
       safeLimit
     );
@@ -75,15 +102,13 @@ router.get('/users', cacheResponse(15000), async (req, res, next) => {
     const { q, page = 1, limit = 10 } = req.query;
     const safeLimit = Math.min(parseInt(limit) || 10, 50);
 
-    if (!q || q.trim().length === 0) {
-      return res.status(400).json({
-        error: 'Search query required',
-        code: 'MISSING_QUERY'
-      });
+    const error = getQueryError(q);
+    if (error) {
+      return res.status(error.status).json({ error: error.error, code: error.code });
     }
 
     const { results, pagination } = await searchUsers(
-      q,
+      q.trim(),
       parseInt(page),
       safeLimit
     );
@@ -104,15 +129,13 @@ router.get('/forums', cacheResponse(15000), async (req, res, next) => {
     const { q, page = 1, limit = 10 } = req.query;
     const safeLimit = Math.min(parseInt(limit) || 10, 50);
 
-    if (!q || q.trim().length === 0) {
-      return res.status(400).json({
-        error: 'Search query required',
-        code: 'MISSING_QUERY'
-      });
+    const error = getQueryError(q);
+    if (error) {
+      return res.status(error.status).json({ error: error.error, code: error.code });
     }
 
     const { results, pagination } = await searchForums(
-      q,
+      q.trim(),
       parseInt(page),
       safeLimit
     );

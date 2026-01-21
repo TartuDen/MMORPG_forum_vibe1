@@ -191,3 +191,82 @@ export const searchForums = async (query, page = 1, limit = 10) => {
     }
   };
 };
+
+export const searchSuggestions = async (query, limit = 8) => {
+  const safeLimit = Math.max(1, Math.min(limit, 20));
+  const perType = Math.max(1, Math.ceil(safeLimit / 5));
+  const likeQuery = `%${query}%`;
+
+  const [threadsResult, forumsResult, usersResult, gamesResult, tagsResult] = await Promise.all([
+    pool.query(
+      `SELECT id, forum_id, title
+       FROM threads
+       WHERE title ILIKE $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [likeQuery, perType]
+    ),
+    pool.query(
+      `SELECT id, name
+       FROM forums
+       WHERE name ILIKE $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [likeQuery, perType]
+    ),
+    pool.query(
+      `SELECT id, username
+       FROM users
+       WHERE username ILIKE $1
+       ORDER BY total_posts DESC
+       LIMIT $2`,
+      [likeQuery, perType]
+    ),
+    pool.query(
+      `SELECT id, name
+       FROM games
+       WHERE name ILIKE $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [likeQuery, perType]
+    ),
+    pool.query(
+      `SELECT DISTINCT tag
+       FROM games, unnest(tags) tag
+       WHERE tag ILIKE $1
+       ORDER BY tag ASC
+       LIMIT $2`,
+      [likeQuery, perType]
+    )
+  ]);
+
+  const suggestions = [
+    ...forumsResult.rows.map((forum) => ({
+      type: 'forum',
+      label: forum.name,
+      path: `/forums/${forum.id}`
+    })),
+    ...threadsResult.rows.map((thread) => ({
+      type: 'thread',
+      label: thread.title,
+      path: `/forums/${thread.forum_id}/threads/${thread.id}`
+    })),
+    ...usersResult.rows.map((user) => ({
+      type: 'user',
+      label: user.username,
+      path: `/user/${user.id}`
+    })),
+    ...gamesResult.rows.map((game) => ({
+      type: 'game',
+      label: game.name,
+      path: `/search?q=${encodeURIComponent(game.name)}`
+    })),
+    ...tagsResult.rows.map((tag) => ({
+      type: 'tag',
+      label: tag.tag,
+      path: `/search?q=${encodeURIComponent(tag.tag)}`
+    }))
+  ];
+
+  return suggestions.slice(0, safeLimit);
+};

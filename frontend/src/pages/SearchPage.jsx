@@ -4,6 +4,7 @@ import axios from 'axios';
 import '../styles/search.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const MIN_QUERY_LENGTH = 4;
 
 export default function SearchPage() {
   const [searchParams] = useSearchParams();
@@ -19,8 +20,21 @@ export default function SearchPage() {
   const [activeTab, setActiveTab] = useState('threads');
 
   useEffect(() => {
-    if (!query.trim()) {
+    const trimmed = query.trim();
+    if (!trimmed) {
       setError('Enter a search query');
+      setThreads([]);
+      setComments([]);
+      setUsers([]);
+      setForums([]);
+      return;
+    }
+    if (trimmed.length < MIN_QUERY_LENGTH) {
+      setError(`Enter at least ${MIN_QUERY_LENGTH} characters to search`);
+      setThreads([]);
+      setComments([]);
+      setUsers([]);
+      setForums([]);
       return;
     }
 
@@ -29,10 +43,10 @@ export default function SearchPage() {
       setError('');
 
       try {
-        const threadRes = await axios.get(`${API_BASE_URL}/search/threads?q=${encodeURIComponent(query)}&limit=20`);
-        const commentRes = await axios.get(`${API_BASE_URL}/search/comments?q=${encodeURIComponent(query)}&limit=20`);
-        const userRes = await axios.get(`${API_BASE_URL}/search/users?q=${encodeURIComponent(query)}&limit=20`);
-        const forumRes = await axios.get(`${API_BASE_URL}/search/forums?q=${encodeURIComponent(query)}&limit=20`);
+        const threadRes = await axios.get(`${API_BASE_URL}/search/threads?q=${encodeURIComponent(trimmed)}&limit=20`);
+        const commentRes = await axios.get(`${API_BASE_URL}/search/comments?q=${encodeURIComponent(trimmed)}&limit=20`);
+        const userRes = await axios.get(`${API_BASE_URL}/search/users?q=${encodeURIComponent(trimmed)}&limit=20`);
+        const forumRes = await axios.get(`${API_BASE_URL}/search/forums?q=${encodeURIComponent(trimmed)}&limit=20`);
 
         const threadsData = threadRes.data.data || threadRes.data.results || [];
         const commentsData = commentRes.data.data || commentRes.data.results || [];
