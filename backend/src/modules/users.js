@@ -304,6 +304,20 @@ export const updateUserRole = async (targetUserId, newRole, moderatorId) => {
   try {
     await client.query('BEGIN');
 
+    const targetResult = await client.query(
+      'SELECT id, role, is_super_admin FROM users WHERE id = $1',
+      [targetUserId]
+    );
+
+    if (targetResult.rows.length === 0) {
+      throw { status: 404, message: 'User not found', code: 'USER_NOT_FOUND' };
+    }
+
+    const targetUser = targetResult.rows[0];
+    if (targetUser.is_super_admin && newRole !== 'admin') {
+      throw { status: 403, message: 'Super admin role cannot be changed', code: 'SUPER_ADMIN_IMMUTABLE' };
+    }
+
     const result = await client.query(
       `UPDATE users
        SET role = $1
@@ -311,10 +325,6 @@ export const updateUserRole = async (targetUserId, newRole, moderatorId) => {
        RETURNING id, username, role, is_banned`,
       [newRole, targetUserId]
     );
-
-    if (result.rows.length === 0) {
-      throw { status: 404, message: 'User not found', code: 'USER_NOT_FOUND' };
-    }
 
     await client.query(
       `INSERT INTO moderation_log (moderator_id, action_type, target_type, target_id, reason)

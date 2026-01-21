@@ -50,6 +50,7 @@ export const initializeDatabase = async () => {
         email VARCHAR(255) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         role VARCHAR(50) DEFAULT 'user' CHECK (role IN ('admin', 'moderator', 'user')),
+        is_super_admin BOOLEAN DEFAULT false,
         auth_provider VARCHAR(50) DEFAULT 'local' CHECK (auth_provider IN ('local', 'google')),
         google_id TEXT UNIQUE,
         is_email_verified BOOLEAN DEFAULT false,
@@ -72,6 +73,7 @@ export const initializeDatabase = async () => {
       ALTER TABLE users
         ADD COLUMN IF NOT EXISTS auth_provider VARCHAR(50) DEFAULT 'local' CHECK (auth_provider IN ('local', 'google')),
         ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE,
+        ADD COLUMN IF NOT EXISTS is_super_admin BOOLEAN DEFAULT false,
         ADD COLUMN IF NOT EXISTS is_email_verified BOOLEAN DEFAULT false,
         ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMP,
         ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false,
