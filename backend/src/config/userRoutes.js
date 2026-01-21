@@ -16,23 +16,41 @@ router.get('/admin/overview', authenticate, authorize('admin'), async (req, res,
 
     const result = await pool.query(
       `
+        WITH user_activity AS (
+          SELECT
+            u.id,
+            u.username,
+            u.email,
+            u.role,
+            u.total_posts,
+            u.is_email_verified,
+            u.is_banned,
+            u.created_at,
+            (SELECT COUNT(*) FROM threads t WHERE t.user_id = u.id) AS thread_count,
+            (SELECT COUNT(*) FROM comments c WHERE c.user_id = u.id AND c.is_deleted = false) AS comment_count,
+            (SELECT MAX(created_at) FROM threads t WHERE t.user_id = u.id) AS last_thread_at,
+            (SELECT MAX(created_at) FROM comments c WHERE c.user_id = u.id) AS last_comment_at
+          FROM users u
+        )
         SELECT
-          u.id,
-          u.username,
-          u.email,
-          u.role,
-          u.total_posts,
-          u.is_email_verified,
-          u.is_banned,
-          u.created_at,
-          (SELECT COUNT(*) FROM threads t WHERE t.user_id = u.id) AS thread_count,
-          (SELECT COUNT(*) FROM comments c WHERE c.user_id = u.id AND c.is_deleted = false) AS comment_count,
-          GREATEST(
-            COALESCE((SELECT MAX(created_at) FROM threads t WHERE t.user_id = u.id), '1970-01-01'::timestamp),
-            COALESCE((SELECT MAX(created_at) FROM comments c WHERE c.user_id = u.id), '1970-01-01'::timestamp)
-          ) AS last_activity_at
-        FROM users u
-        ORDER BY last_activity_at DESC NULLS LAST, u.created_at DESC
+          id,
+          username,
+          email,
+          role,
+          total_posts,
+          is_email_verified,
+          is_banned,
+          created_at,
+          thread_count,
+          comment_count,
+          CASE
+            WHEN last_thread_at IS NULL AND last_comment_at IS NULL THEN NULL
+            WHEN last_thread_at IS NULL THEN last_comment_at
+            WHEN last_comment_at IS NULL THEN last_thread_at
+            ELSE GREATEST(last_thread_at, last_comment_at)
+          END AS last_activity_at
+        FROM user_activity
+        ORDER BY last_activity_at DESC NULLS LAST, created_at DESC
         LIMIT $1 OFFSET $2
       `,
       [limit, offset]

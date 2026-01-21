@@ -4,7 +4,7 @@ import { useAuth } from '../services/authContext';
 import '../styles/admin-users.css';
 
 const formatDate = (value) => {
-  if (!value) return 'n/a';
+  if (!value) return 'No activity yet';
   const date = new Date(value);
   return date.toLocaleString();
 };
