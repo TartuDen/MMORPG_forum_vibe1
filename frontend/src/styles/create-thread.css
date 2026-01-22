@@ -56,12 +56,14 @@
   border-radius: 6px;
   overflow: hidden;
   max-height: 220px;
+  background: #f8fafc;
 }
 
 .image-preview img {
   width: 100%;
   display: block;
-  object-fit: cover;
+  max-height: 220px;
+  object-fit: contain;
 }
 
 .form-actions {
