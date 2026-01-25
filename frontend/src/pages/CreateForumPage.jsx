@@ -17,7 +17,7 @@ const normalizeTag = (value) => {
 
 export default function CreateForumPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const [games, setGames] = useState([]);
   const [availableTags, setAvailableTags] = useState([]);
@@ -91,6 +91,7 @@ export default function CreateForumPage() {
   }, []);
 
   useEffect(() => {
+    if (gameEdit.id) return;
     const gameIdParam = searchParams.get('gameId');
     if (!gameIdParam) return;
     const gameIdValue = parseInt(gameIdParam, 10);
@@ -106,7 +107,7 @@ export default function CreateForumPage() {
       icon_url: game.icon_url || '',
       website_url: game.website_url || ''
     });
-  }, [games, searchParams]);
+  }, [games, searchParams, gameEdit.id]);
 
   const mode = searchParams.get('mode') || 'manage';
   const showCreateGame = mode !== 'update';
@@ -295,6 +296,12 @@ export default function CreateForumPage() {
         });
       }
       await fetchGames();
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('gameId');
+        return next;
+      });
+      setGameEdit({ id: '', name: '', description: '', tags: [], icon_url: '', website_url: '' });
       setSuccess('Game updated successfully.');
     } catch (err) {
       const errorMsg = err.response?.data?.error ||
@@ -479,6 +486,15 @@ export default function CreateForumPage() {
                 onChange={(e) => {
                   const gameId = parseInt(e.target.value, 10);
                   const game = games.find(item => item.id === gameId);
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    if (!gameId || Number.isNaN(gameId)) {
+                      next.delete('gameId');
+                    } else {
+                      next.set('gameId', String(gameId));
+                    }
+                    return next;
+                  });
                   if (!game) {
                     setGameEdit({ id: '', name: '', description: '', tags: [], icon_url: '', website_url: '' });
                     return;
