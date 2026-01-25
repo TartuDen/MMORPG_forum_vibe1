@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { authAPI, threadsAPI, commentsAPI, reputationAPI } from '../services/api';
 import { useAuth } from '../services/authContext';
@@ -11,23 +11,40 @@ const SOCKET_URL = import.meta.env.VITE_SOCKET_IO_URL || 'http://localhost:5000'
 export default function ThreadPage() {
   const { forumId, threadId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, isAuthenticated } = useAuth();
+  const pageFromQuery = Number.parseInt(searchParams.get('page') || '1', 10);
+  const safePage = Number.isNaN(pageFromQuery) || pageFromQuery < 1 ? 1 : pageFromQuery;
   const [thread, setThread] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [showComposer, setShowComposer] = useState(false);
   const [replyTarget, setReplyTarget] = useState(null);
   const [replyContent, setReplyContent] = useState('');
-  const [pagination, setPagination] = useState({ page: 1, limit: 10 });
+  const [pagination, setPagination] = useState({ page: safePage, limit: 10 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [voteError, setVoteError] = useState('');
   const [voteLoading, setVoteLoading] = useState(false);
+  const targetCommentId = useMemo(() => {
+    if (!location.hash || !location.hash.startsWith('#comment-')) {
+      return null;
+    }
+    const value = Number.parseInt(location.hash.replace('#comment-', ''), 10);
+    return Number.isNaN(value) ? null : value;
+  }, [location.hash]);
 
   const socket = useMemo(() => {
     return io(SOCKET_URL, { withCredentials: true, autoConnect: false });
   }, []);
+
+  useEffect(() => {
+    setPagination((prev) => (
+      prev.page === safePage ? prev : { ...prev, page: safePage }
+    ));
+  }, [safePage]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -114,6 +131,14 @@ export default function ThreadPage() {
 
     fetchThread();
   }, [forumId, threadId, pagination.page]);
+
+  useEffect(() => {
+    if (!targetCommentId || comments.length === 0) return;
+    const element = document.getElementById(`comment-${targetCommentId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [comments, targetCommentId]);
 
   const handleCreateComment = async (e) => {
     e.preventDefault();
@@ -371,6 +396,7 @@ export default function ThreadPage() {
                   threadId={threadId}
                   isOwner={user && user.id === comment.user_id}
                   canReply={isAuthenticated}
+                  isTarget={comment.id === targetCommentId}
                   onReply={() => {
                     setReplyTarget(comment);
                     setShowComposer(false);
@@ -429,6 +455,7 @@ export default function ThreadPage() {
                         isOwner={user && user.id === reply.user_id}
                         canReply={false}
                         parentComment={parentComment}
+                        isTarget={reply.id === targetCommentId}
                         onUpdate={() => {
                           const response = threadsAPI.getThread(
                             forumId,
@@ -455,7 +482,13 @@ export default function ThreadPage() {
               <button
                 key={page}
                 className={`page-btn ${page === pagination.page ? 'active' : ''}`}
-                onClick={() => setPagination({ ...pagination, page })}
+                onClick={() => {
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.set('page', String(page));
+                    return next;
+                  });
+                }}
               >
                 {page}
               </button>

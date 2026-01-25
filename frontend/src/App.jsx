@@ -17,6 +17,7 @@ import MessagesPage from './pages/MessagesPage';
 import GameCategoryPage from './pages/GameCategoryPage';
 import UsersPage from './pages/UsersPage';
 import AdminUsersPage from './pages/AdminUsersPage';
+import AdminUserActivityPage from './pages/AdminUserActivityPage';
 import './App.css';
 
 function ProtectedRoute({ children, isAuthenticated, loading }) {
@@ -96,6 +97,14 @@ function AppContent() {
           element={
             <AdminRoute isAuthenticated={isAuthenticated} loading={loading} user={user}>
               <AdminUsersPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/users/:userId/activity"
+          element={
+            <AdminRoute isAuthenticated={isAuthenticated} loading={loading} user={user}>
+              <AdminUserActivityPage />
             </AdminRoute>
           }
         />

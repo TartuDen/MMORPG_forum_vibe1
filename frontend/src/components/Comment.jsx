@@ -12,7 +12,8 @@ export default function Comment({
   onUpdate,
   canReply = false,
   onReply,
-  parentComment = null
+  parentComment = null,
+  isTarget = false
 }) {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
@@ -104,7 +105,7 @@ export default function Comment({
   };
 
   return (
-    <div className="comment">
+    <div id={`comment-${comment.id}`} className={`comment${isTarget ? ' comment-target' : ''}`}>
       {parentComment && (
         <div className="comment-quote">
           <div className="quote-author">{parentComment.author_username || 'User'}</div>

@@ -141,6 +141,16 @@ export const usersAPI = {
     apiClient.get(`/users?page=${page}&limit=${limit}`),
   getAdminOverview: (page = 1, limit = 50) =>
     apiClient.get(`/users/admin/overview?page=${page}&limit=${limit}`),
+  getAdminUserPosts: (userId, page = 1, limit = 20, threadPageSize = 10) =>
+    apiClient.get(
+      `/users/admin/${userId}/posts?page=${page}&limit=${limit}&threadPageSize=${threadPageSize}`
+    ),
+  getAdminUserThreads: (userId, page = 1, limit = 20) =>
+    apiClient.get(`/users/admin/${userId}/threads?page=${page}&limit=${limit}`),
+  getAdminUserComments: (userId, page = 1, limit = 20, threadPageSize = 10) =>
+    apiClient.get(
+      `/users/admin/${userId}/comments?page=${page}&limit=${limit}&threadPageSize=${threadPageSize}`
+    ),
   updateUserRole: (userId, role) =>
     apiClient.put(`/users/${userId}/role`, { role })
 };

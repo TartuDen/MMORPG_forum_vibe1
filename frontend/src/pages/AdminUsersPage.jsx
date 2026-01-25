@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { usersAPI } from '../services/api';
 import { useAuth } from '../services/authContext';
 import '../styles/admin-users.css';
@@ -99,8 +100,8 @@ export default function AdminUsersPage() {
           <div className="admin-row admin-row-header">
             <span>User</span>
             <span>Role</span>
-            <span>Posts</span>
-            <span>Threads</span>
+            <span>Total Posts</span>
+            <span>Threads Created</span>
             <span>Comments</span>
               <span>Last activity</span>
               <span>Status</span>
@@ -114,8 +115,18 @@ export default function AdminUsersPage() {
                 <div className="admin-joined">Joined {formatDate(member.created_at)}</div>
               </div>
               <span className={`role-badge ${member.role}`}>{member.role}</span>
-              <span>{member.total_posts || 0}</span>
-              <span>{member.thread_count || 0}</span>
+              <Link
+                className="admin-activity-link"
+                to={`/admin/users/${member.id}/activity?view=posts`}
+              >
+                {member.total_posts || 0}
+              </Link>
+              <Link
+                className="admin-activity-link"
+                to={`/admin/users/${member.id}/activity?view=threads`}
+              >
+                {member.thread_count || 0}
+              </Link>
               <span>{member.comment_count || 0}</span>
               <span>{formatDate(member.last_activity_at)}</span>
               <span className="admin-status">
