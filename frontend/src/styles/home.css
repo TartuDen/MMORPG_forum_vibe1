@@ -283,6 +283,27 @@
   box-shadow: 0 6px 16px rgba(99, 102, 241, 0.12);
 }
 
+.tag-toggle {
+  margin-top: 1rem;
+  border: 1px dashed var(--color-border);
+  background: #fff;
+  color: var(--color-primary);
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tag-toggle:hover {
+  border-color: var(--color-primary);
+  color: var(--color-dark);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.12);
+}
+
 .tag-sections {
   display: flex;
   flex-direction: column;

@@ -16,6 +16,7 @@ export default function HomePage() {
   const [usersLoading, setUsersLoading] = useState(false);
   const [usersError, setUsersError] = useState('');
   const [usersTotal, setUsersTotal] = useState(0);
+  const [showAllTags, setShowAllTags] = useState(false);
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const { onlineUserIds } = usePresence();
@@ -84,6 +85,9 @@ export default function HomePage() {
       if (diff !== 0) return diff;
       return a.localeCompare(b);
     });
+  const maxVisibleTags = 10;
+  const visibleTags = showAllTags ? sortedTags : sortedTags.slice(0, maxVisibleTags);
+  const hasHiddenTags = sortedTags.length > maxVisibleTags;
 
   useEffect(() => {
     if (!generalForum?.id) return;
@@ -231,7 +235,7 @@ export default function HomePage() {
               <h3>Browse by Tag</h3>
               <p className="section-subtitle">Pick a category and explore the games</p>
               <div className="tag-chip-row">
-                {sortedTags.map((tag) => (
+                {visibleTags.map((tag) => (
                   <button
                     key={tag}
                     type="button"
@@ -242,6 +246,16 @@ export default function HomePage() {
                   </button>
                 ))}
               </div>
+              {hasHiddenTags && (
+                <button
+                  type="button"
+                  className="tag-toggle"
+                  onClick={() => setShowAllTags((prev) => !prev)}
+                  aria-expanded={showAllTags}
+                >
+                  {showAllTags ? 'Show fewer tags' : `Show all tags (${sortedTags.length})`}
+                </button>
+              )}
             </div>
           )}
 
