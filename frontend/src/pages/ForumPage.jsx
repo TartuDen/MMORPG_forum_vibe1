@@ -115,11 +115,11 @@ export default function ForumPage() {
                   className="thread-row"
                   onClick={() => navigate(`/forums/${forumId}/threads/${thread.id}`)}
                 >
-                  <td className="thread-title">
+                  <td className="thread-title" data-label="Title">
                     {thread.is_pinned && <span className="pinned-badge">dY"O</span>}
                     {thread.title}
                   </td>
-                  <td className="thread-author">
+                  <td className="thread-author" data-label="Author">
                     <span className="thread-author-meta">
                       {thread.author_avatar_url ? (
                         <img className="avatar-thumb" src={thread.author_avatar_url} alt={thread.author_username} />
@@ -142,10 +142,10 @@ export default function ForumPage() {
                       <span className="role-badge admin">Admin</span>
                     )}
                   </td>
-                  <td className="thread-score">{thread.vote_score ?? 0}</td>
-                  <td className="thread-replies">{thread.comment_count}</td>
-                  <td className="thread-views">{thread.view_count}</td>
-                  <td className="thread-date">
+                  <td className="thread-score" data-label="Score">{thread.vote_score ?? 0}</td>
+                  <td className="thread-replies" data-label="Replies">{thread.comment_count}</td>
+                  <td className="thread-views" data-label="Views">{thread.view_count}</td>
+                  <td className="thread-date" data-label="Last Post">
                     {new Date(thread.created_at).toLocaleDateString()}
                   </td>
                 </tr>

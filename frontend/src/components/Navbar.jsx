@@ -123,52 +123,54 @@ export default function Navbar() {
           </h1>
         </div>
 
-        <form className="navbar-search" onSubmit={handleSearch} ref={searchRef}>
-          <div className="search-field">
-            <input
-              type="text"
-              placeholder="Search threads, comments, users..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setSearchError('');
-                setActiveIndex(-1);
-              }}
-              onFocus={() => {
-                if (searchQuery.trim().length >= MIN_SEARCH_LENGTH) {
-                  setSuggestionsOpen(true);
-                }
-              }}
-              onKeyDown={handleKeyDown}
-              className="search-input"
-              aria-autocomplete="list"
-              aria-expanded={suggestionsOpen}
-            />
-            {suggestionsOpen && (
-              <div className="search-suggestions">
-                {suggestionsLoading ? (
-                  <div className="search-suggestion muted">Searching...</div>
-                ) : suggestions.length === 0 ? (
-                  <div className="search-suggestion muted">No suggestions</div>
-                ) : (
-                  suggestions.map((suggestion, index) => (
-                    <button
-                      type="button"
-                      key={`${suggestion.type}-${suggestion.label}-${index}`}
-                      className={`search-suggestion ${index === activeIndex ? 'active' : ''}`}
-                      onClick={() => handleSuggestionClick(suggestion)}
-                    >
-                      <span className="suggestion-label">{suggestion.label}</span>
-                      <span className="suggestion-type">{suggestion.type}</span>
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-            {searchError && <div className="search-error">{searchError}</div>}
-          </div>
-          <button type="submit" className="search-btn">Search</button>
-        </form>
+        {isAuthenticated && (
+          <form className="navbar-search" onSubmit={handleSearch} ref={searchRef}>
+            <div className="search-field">
+              <input
+                type="text"
+                placeholder="Search threads, comments, users..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setSearchError('');
+                  setActiveIndex(-1);
+                }}
+                onFocus={() => {
+                  if (searchQuery.trim().length >= MIN_SEARCH_LENGTH) {
+                    setSuggestionsOpen(true);
+                  }
+                }}
+                onKeyDown={handleKeyDown}
+                className="search-input"
+                aria-autocomplete="list"
+                aria-expanded={suggestionsOpen}
+              />
+              {suggestionsOpen && (
+                <div className="search-suggestions">
+                  {suggestionsLoading ? (
+                    <div className="search-suggestion muted">Searching...</div>
+                  ) : suggestions.length === 0 ? (
+                    <div className="search-suggestion muted">No suggestions</div>
+                  ) : (
+                    suggestions.map((suggestion, index) => (
+                      <button
+                        type="button"
+                        key={`${suggestion.type}-${suggestion.label}-${index}`}
+                        className={`search-suggestion ${index === activeIndex ? 'active' : ''}`}
+                        onClick={() => handleSuggestionClick(suggestion)}
+                      >
+                        <span className="suggestion-label">{suggestion.label}</span>
+                        <span className="suggestion-type">{suggestion.type}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+              {searchError && <div className="search-error">{searchError}</div>}
+            </div>
+            <button type="submit" className="search-btn">Search</button>
+          </form>
+        )}
 
         <div className="navbar-menu">
           {isAuthenticated ? (

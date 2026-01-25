@@ -27,3 +27,21 @@
 .scroll-top-btn:hover {
   background: #111827;
 }
+
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+    min-height: calc(100vh - 64px);
+  }
+
+  .scroll-top-btn {
+    right: 16px;
+    bottom: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 12px;
+  }
+}

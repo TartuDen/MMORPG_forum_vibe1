@@ -61,7 +61,14 @@ function AppContent() {
     <>
       <Navbar />
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading}>
+              <HomePage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/login"
           element={isAuthenticated ? <Navigate to="/" /> : <LoginPage />}
@@ -71,11 +78,46 @@ function AppContent() {
           element={isAuthenticated ? <Navigate to="/" /> : <RegisterPage />}
         />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
-        <Route path="/forums/:forumId" element={<ForumPage />} />
-        <Route path="/forums/:forumId/threads/:threadId" element={<ThreadPage />} />
-        <Route path="/games/category/:tag" element={<GameCategoryPage />} />
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/user/:userId" element={<UserProfilePage />} />
+        <Route
+          path="/forums/:forumId"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading}>
+              <ForumPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/forums/:forumId/threads/:threadId"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading}>
+              <ThreadPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/games/category/:tag"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading}>
+              <GameCategoryPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/search"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading}>
+              <SearchPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/user/:userId"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading}>
+              <UserProfilePage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/users"
           element={

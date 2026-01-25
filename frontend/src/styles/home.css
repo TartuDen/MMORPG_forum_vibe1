@@ -45,6 +45,11 @@
   align-items: start;
 }
 
+.home-main,
+.home-sidebar {
+  min-width: 0;
+}
+
 .home-layout.full {
   grid-template-columns: 1fr;
 }
@@ -89,6 +94,7 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   background-size: cover;
   background-position: center;
+  width: 100%;
 }
 
 .general-forum-card:hover {
@@ -261,6 +267,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
+  width: 100%;
 }
 
 .tag-chip {
@@ -275,6 +282,9 @@
   text-transform: uppercase;
   cursor: pointer;
   transition: border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .tag-chip:hover {
@@ -403,6 +413,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  max-width: 100%;
 }
 
 .tag-pill {
@@ -415,6 +426,8 @@
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .game-card p {
@@ -541,6 +554,63 @@
 
   .home-sidebar {
     position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .create-forum-btn {
+    margin-left: 0;
+    width: 100%;
+    text-align: center;
+  }
+
+  .general-forum-card {
+    padding: 1.25rem;
+  }
+
+  .general-forum-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .general-forum-action {
+    width: 100%;
+    text-align: center;
+  }
+
+  .alphabet-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .games-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .online-users-list {
+    max-height: 320px;
+  }
+}
+
+@media (max-width: 520px) {
+  .forums-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .games-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tag-chip-row {
+    gap: 0.5rem;
   }
 }
 

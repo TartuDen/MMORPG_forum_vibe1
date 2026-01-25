@@ -191,3 +191,56 @@
     justify-content: space-between;
   }
 }
+
+@media (max-width: 860px) {
+  .navbar {
+    position: static;
+  }
+
+  .navbar-container {
+    align-items: stretch;
+  }
+
+  .navbar-brand h1 {
+    font-size: 1.3rem;
+  }
+
+  .navbar-search {
+    flex-direction: column;
+    gap: 0.65rem;
+    width: 100%;
+    max-width: none;
+  }
+
+  .search-btn {
+    width: 100%;
+  }
+
+  .navbar-menu {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .navbar-user {
+    grid-column: 1 / -1;
+  }
+
+  .navbar-btn {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .navbar-brand h1 {
+    font-size: 1.15rem;
+  }
+
+  .navbar-logo {
+    width: 20px;
+    height: 20px;
+  }
+}
